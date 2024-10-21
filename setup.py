@@ -5,17 +5,16 @@ with open('README.md') as file:
     long_description = file.read()
 
 
-# TODO - replace with details of your project
 setup(
-    name='NAME',
-    description='DESCRIPTION',
+    name='combnet',
+    description='Efficient comb filter networks',
     version='0.0.1',
-    author='AUTHOR',
-    author_email='EMAIL',
-    url='https://github.com/USERNAME/NAME',
+    author='Cameron Churchwell',
+    author_email='cameronchurchwell@icloud.com',
+    url='https://github.com/CameronChurchwell/combnet',
     install_requires=['accelerate', 'GPUtil', 'torch', 'torchutil', 'yapecs'],
     packages=find_packages(),
-    package_data={'NAME': ['assets/*', 'assets/*/*']},
+    package_data={'combnet': ['assets/*', 'assets/*/*']},
     long_description=long_description,
     long_description_content_type='text/markdown',
     keywords=[],

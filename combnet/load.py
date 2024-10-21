@@ -1,6 +1,6 @@
 import json
 
-import NAME
+import combnet
 
 
 ###############################################################################
@@ -10,5 +10,5 @@ import NAME
 
 def partition(dataset):
     """Load partitions for dataset"""
-    with open(NAME.PARTITION_DIR / f'{dataset}.json') as file:
+    with open(combnet.PARTITION_DIR / f'{dataset}.json') as file:
         return json.load(file)

@@ -3,7 +3,7 @@ import json
 import torch
 import torchutil
 
-import NAME
+import combnet
 
 
 ###############################################################################
@@ -13,8 +13,8 @@ import NAME
 
 @torchutil.notify('evaluate')
 def datasets(
-    datasets=NAME.EVALUATION_DATASETS,
-    checkpoint=NAME.DEFAULT_CHECKPOINT,
+    datasets=combnet.EVALUATION_DATASETS,
+    checkpoint=combnet.DEFAULT_CHECKPOINT,
     gpu=None):
     """Perform evaluation"""
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
@@ -23,13 +23,13 @@ def datasets(
     overall, granular = {}, {}
 
     # Per-file metrics
-    file_metrics = NAME.evaluate.Metrics()
+    file_metrics = combnet.evaluate.Metrics()
 
     # Per-dataset metrics
-    dataset_metrics = NAME.evaluate.Metrics()
+    dataset_metrics = combnet.evaluate.Metrics()
 
     # Aggregate metrics over all datasets
-    aggregate_metrics = NAME.evaluate.Metrics()
+    aggregate_metrics = combnet.evaluate.Metrics()
 
     # Evaluate each dataset
     for dataset in datasets:
@@ -39,8 +39,8 @@ def datasets(
 
         # Iterate over test set
         for batch in torchutil.iterator(
-            NAME.data.loader(dataset, 'test'),
-            f'Evaluating {NAME.CONFIG} on {dataset}'
+            combnet.data.loader(dataset, 'test'),
+            f'Evaluating {combnet.CONFIG} on {dataset}'
         ):
 
             # Reset file metrics
@@ -67,7 +67,7 @@ def datasets(
     overall['aggregate'] = aggregate_metrics()
 
     # Write to json files
-    directory = NAME.EVAL_DIR / NAME.CONFIG
+    directory = combnet.EVAL_DIR / combnet.CONFIG
     directory.mkdir(exist_ok=True, parents=True)
     with open(directory / 'overall.json', 'w') as file:
         json.dump(overall, file, indent=4)

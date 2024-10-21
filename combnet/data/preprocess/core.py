@@ -1,6 +1,6 @@
 import torchutil
 
-import NAME
+import combnet
 
 
 ###############################################################################
@@ -17,8 +17,8 @@ def datasets(datasets):
             The name of the dataset to preprocess
     """
     for dataset in datasets:
-        input_directory = NAME.DATA_DIR / dataset
-        output_directory = NAME.CACHE_DIR / dataset
+        input_directory = combnet.DATA_DIR / dataset
+        output_directory = combnet.CACHE_DIR / dataset
 
         # TODO - Perform preprocessing
         raise NotImplementedError

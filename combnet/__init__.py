@@ -8,7 +8,7 @@ from .config import defaults
 
 # Modify configuration
 import yapecs
-yapecs.configure('NAME', defaults)
+yapecs.configure('combnet', defaults)
 
 # Import configuration parameters
 from .config.defaults import *

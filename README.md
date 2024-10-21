@@ -1,9 +1,9 @@
 <h1 align="center">Deep learning project template</h1>
 <div align="center">
 
-<!-- [![PyPI](https://img.shields.io/pypi/v/NAME.svg)](https://pypi.python.org/pypi/NAME) -->
+<!-- [![PyPI](https://img.shields.io/pypi/v/combnet.svg)](https://pypi.python.org/pypi/combnet) -->
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-<!-- [![Downloads](https://pepy.tech/badge/NAME)](https://pepy.tech/project/NAME) -->
+<!-- [![Downloads](https://pepy.tech/badge/combnet)](https://pepy.tech/project/combnet) -->
 
 </div>
 
@@ -13,10 +13,10 @@
 - [Installation](#installation)
 - [Inference](#inference)
     * [Application programming interface](#application-programming-interface)
-        * [`NAME.from_text_and_audio`](#NAMEfrom_text_and_audio)
-        * [`NAME.from_file`](#NAMEfrom_file)
-        * [`NAME.from_file_to_file`](#NAMEfrom_file_to_file)
-        * [`NAME.from_files_to_files`](#NAMEfrom_files_to_files)
+        * [`combnet.from_text_and_audio`](#combnetfrom_text_and_audio)
+        * [`combnet.from_file`](#combnetfrom_file)
+        * [`combnet.from_file_to_file`](#combnetfrom_file_to_file)
+        * [`combnet.from_files_to_files`](#combnetfrom_files_to_files)
     * [Command-line interface](#command-line-interface)
 - [Training](#training)
     * [Download](#download)
@@ -30,30 +30,30 @@
 
 ## Installation
 
-`pip install NAME`
+`pip install combnet`
 
 
 ## Inference
 
 ```python
-import NAME
+import combnet
 
 # TODO - load input
 x = None
 
 # Model checkpoint
-checkpoint = NAME.DEFAULT_CHECKPOINT
+checkpoint = combnet.DEFAULT_CHECKPOINT
 
 # GPU index
 gpu = 0
 
-y = NAME.run(x, checkpoint=checkpoint, gpu=gpu)
+y = combnet.run(x, checkpoint=checkpoint, gpu=gpu)
 ```
 
 
 ### Application programming interface
 
-#### `NAME.run`
+#### `combnet.run`
 
 
 ```
@@ -74,7 +74,7 @@ Returns
 ```
 
 
-#### `NAME.from_file`
+#### `combnet.from_file`
 
 ```
 """Load from file and process
@@ -94,7 +94,7 @@ Returns
 ```
 
 
-#### `NAME.from_file_to_file`
+#### `combnet.from_file_to_file`
 
 ```
 """Process file and save to disk
@@ -112,7 +112,7 @@ Arguments
 ```
 
 
-#### `NAME.from_files_to_files`
+#### `combnet.from_files_to_files`
 
 ```
 """Process many files and save to disk
@@ -133,7 +133,7 @@ Arguments
 ### Command-line interface
 
 ```
-python -m NAME
+python -m combnet
     [-h]
     --input_files INPUT_FILES [INPUT_FILES ...]
     --output_files OUTPUT_FILES [OUTPUT_FILES ...]
@@ -158,28 +158,28 @@ Arguments:
 
 ### Download
 
-`python -m NAME.data.download`
+`python -m combnet.data.download`
 
 Download and uncompress datasets used for training
 
 
 ### Preprocess
 
-`python -m NAME.data.preprocess`
+`python -m combnet.data.preprocess`
 
 Preprocess datasets
 
 
 ### Partition
 
-`python -m NAME.partition`
+`python -m combnet.partition`
 
-Partition datasets. Partitions are saved in `NAME/assets/partitions`.
+Partition datasets. Partitions are saved in `combnet/assets/partitions`.
 
 
 ### Train
 
-`python -m NAME.train --config <config> --gpus <gpus>`
+`python -m combnet.train --config <config> --gpus <gpus>`
 
 Trains a model according to a given configuration. Uses a list of GPU indices
 as an argument, and uses distributed data parallelism (DDP) if more than one
@@ -197,7 +197,7 @@ Then, open `localhost:6006` in your browser.
 ### Evaluate
 
 ```
-python -m NAME.evaluate \
+python -m combnet.evaluate \
     --config <config> \
     --checkpoint <checkpoint> \
     --gpu <gpu>

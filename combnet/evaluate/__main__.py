@@ -1,7 +1,7 @@
 import yapecs
 from pathlib import Path
 
-import NAME
+import combnet
 
 
 ###############################################################################
@@ -14,12 +14,12 @@ def parse_args():
     parser = yapecs.ArgumentParser()
     parser.add_argument(
         '--datasets',
-        default=NAME.EVALUATION_DATASETS,
+        default=combnet.EVALUATION_DATASETS,
         nargs='+',
         help='The datasets to evaluate')
     parser.add_argument(
         '--checkpoint',
-        default=NAME.DEFAULT_CHECKPOINT,
+        default=combnet.DEFAULT_CHECKPOINT,
         type=Path,
         help='The checkpoint file to evaluate')
     parser.add_argument(
@@ -30,4 +30,4 @@ def parse_args():
     return parser.parse_args()
 
 
-NAME.evaluate.datasets(**vars(parse_args()))
+combnet.evaluate.datasets(**vars(parse_args()))

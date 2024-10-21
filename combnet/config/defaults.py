@@ -10,7 +10,7 @@ import GPUtil
 
 
 # Configuration name
-CONFIG = 'NAME'
+CONFIG = 'combnet'
 
 
 ###############################################################################

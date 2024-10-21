@@ -2,7 +2,7 @@ import yapecs
 import shutil
 from pathlib import Path
 
-import NAME
+import combnet
 
 
 ###############################################################################
@@ -13,14 +13,14 @@ import NAME
 def main(config, dataset):
     """Train from configuration"""
     # Create output directory
-    directory = NAME.RUNS_DIR / config.stem
+    directory = combnet.RUNS_DIR / config.stem
     directory.mkdir(parents=True, exist_ok=True)
 
     # Save configuration
     shutil.copyfile(config, directory / config.name)
 
     # Train
-    NAME.train(dataset, directory)
+    combnet.train(dataset, directory)
 
 
 def parse_args():
@@ -29,11 +29,11 @@ def parse_args():
     parser.add_argument(
         '--config',
         type=Path,
-        default=NAME.DEFAULT_CONFIGURATION,
+        default=combnet.DEFAULT_CONFIGURATION,
         help='The configuration file')
     parser.add_argument(
         '--datasets',
-        default=NAME.DATASETS,
+        default=combnet.DATASETS,
         nargs='+',
         help='The datasets to train on')
 

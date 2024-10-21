@@ -1,6 +1,6 @@
 import yapecs
 
-import NAME
+import combnet
 
 
 ###############################################################################
@@ -13,10 +13,10 @@ def parse_args():
     parser = yapecs.ArgumentParser(description='Download datasets')
     parser.add_argument(
         '--datasets',
-        default=NAME.DATASETS,
+        default=combnet.DATASETS,
         nargs='+',
         help='The datasets to download')
     return parser.parse_args()
 
 
-NAME.data.download.datasets(**vars(parse_args()))
+combnet.data.download.datasets(**vars(parse_args()))

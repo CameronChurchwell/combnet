@@ -3,7 +3,7 @@ import contextlib
 import torch
 import torchutil
 
-import NAME
+import combnet
 
 
 ###############################################################################
@@ -11,7 +11,7 @@ import NAME
 ###############################################################################
 
 
-def run(x, checkpoint=NAME.DEFAULT_CHECKPOINT, gpu=None):
+def run(x, checkpoint=combnet.DEFAULT_CHECKPOINT, gpu=None):
     """
 
     Arguments
@@ -41,7 +41,7 @@ def run(x, checkpoint=NAME.DEFAULT_CHECKPOINT, gpu=None):
 
 def from_file(
     input_file,
-    checkpoint=NAME.DEFAULT_CHECKPOINT,
+    checkpoint=combnet.DEFAULT_CHECKPOINT,
     gpu=None):
     """Load from file and process
 
@@ -67,7 +67,7 @@ def from_file(
 def from_file_to_file(
     input_file,
     output_file,
-    checkpoint=NAME.DEFAULT_CHECKPOINT,
+    checkpoint=combnet.DEFAULT_CHECKPOINT,
     gpu=None):
     """Process file and save to disk
 
@@ -91,7 +91,7 @@ def from_file_to_file(
 def from_files_to_files(
     input_files,
     output_files,
-    checkpoint=NAME.DEFAULT_CHECKPOINT,
+    checkpoint=combnet.DEFAULT_CHECKPOINT,
     gpu=None):
     """Process many files and save to disk
 
@@ -107,7 +107,7 @@ def from_files_to_files(
     """
     for input_file, output_file in torchutil.iterator(
         zip(input_files, output_files),
-        NAME.CONFIG,
+        combnet.CONFIG,
         total=len(input_files)
     ):
         from_file_to_file(input_file, output_file, checkpoint, gpu)
@@ -126,7 +126,7 @@ def preprocess(x):
     return features
 
 
-def infer(features, checkpoint=NAME.DEFAULT_CHECKPOINT):
+def infer(features, checkpoint=combnet.DEFAULT_CHECKPOINT):
     """Model forward pass"""
     # Maybe cache model
     if (
@@ -135,7 +135,7 @@ def infer(features, checkpoint=NAME.DEFAULT_CHECKPOINT):
         infer.device != features.device
     ):
         # Initialize model
-        model = NAME.Model()
+        model = combnet.Model()
 
         # Load from disk
         infer.model, *_ = torchutil.checkpoint.load(checkpoint, model)

@@ -5,7 +5,7 @@ import GPUtil
 import torch
 import torchutil
 
-import NAME
+import combnet
 
 
 ###############################################################################
@@ -14,7 +14,7 @@ import NAME
 
 
 @torchutil.notify('train')
-def train(datasets, directory=NAME.RUNS_DIR / NAME.CONFIG):
+def train(datasets, directory=combnet.RUNS_DIR / combnet.CONFIG):
     """Train a model"""
     # Create output directory
     directory.mkdir(parents=True, exist_ok=True)
@@ -23,15 +23,15 @@ def train(datasets, directory=NAME.RUNS_DIR / NAME.CONFIG):
     # Create data loaders #
     #######################
 
-    torch.manual_seed(NAME.RANDOM_SEED)
-    train_loader = NAME.data.loader(datasets, 'train')
-    valid_loader = NAME.data.loader(datasets, 'valid')
+    torch.manual_seed(combnet.RANDOM_SEED)
+    train_loader = combnet.data.loader(datasets, 'train')
+    valid_loader = combnet.data.loader(datasets, 'valid')
 
     #################
     # Create models #
     #################
 
-    model = NAME.Model()
+    model = combnet.Model()
 
     ####################
     # Create optimizer #
@@ -76,12 +76,12 @@ def train(datasets, directory=NAME.RUNS_DIR / NAME.CONFIG):
 
     # Setup progress bar
     progress = torchutil.iterator(
-        range(step, NAME.STEPS),
-        f'Training {NAME.CONFIG}',
+        range(step, combnet.STEPS),
+        f'Training {combnet.CONFIG}',
         step,
-        NAME.STEPS)
+        combnet.STEPS)
 
-    while step < NAME.STEPS:
+    while step < combnet.STEPS:
 
         for batch in train_loader:
 
@@ -115,11 +115,11 @@ def train(datasets, directory=NAME.RUNS_DIR / NAME.CONFIG):
             # Evaluate #
             ############
 
-            if step % NAME.EVALUATION_INTERVAL == 0:
-                with NAME.inference_context(model):
+            if step % combnet.EVALUATION_INTERVAL == 0:
+                with combnet.inference_context(model):
                     evaluation_steps = (
-                        None if step == NAME.STEPS
-                        else NAME.DEFAULT_EVALUATION_STEPS)
+                        None if step == combnet.STEPS
+                        else combnet.DEFAULT_EVALUATION_STEPS)
                     evaluate_fn = functools.partial(
                         evaluate,
                         directory,
@@ -134,7 +134,7 @@ def train(datasets, directory=NAME.RUNS_DIR / NAME.CONFIG):
             # Save checkpoint #
             ###################
 
-            if step and step % NAME.CHECKPOINT_INTERVAL == 0:
+            if step and step % combnet.CHECKPOINT_INTERVAL == 0:
                 torchutil.checkpoint.save(
                     directory / f'{step:08d}.pt',
                     model,
@@ -148,7 +148,7 @@ def train(datasets, directory=NAME.RUNS_DIR / NAME.CONFIG):
             ########################
 
             # Finished training
-            if step >= NAME.STEPS:
+            if step >= combnet.STEPS:
                 break
 
             # Raise if GPU tempurature exceeds 80 C
@@ -197,7 +197,7 @@ def evaluate(
 ):
     """Perform model evaluation"""
     # Setup evaluation metrics
-    metrics = NAME.evaluate.Metrics()
+    metrics = combnet.evaluate.Metrics()
 
     for i, batch in enumerate(loader):
 

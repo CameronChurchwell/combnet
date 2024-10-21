@@ -1,14 +1,14 @@
 import torch
 
-import NAME
+import combnet
 
 
 def loader(datasets, partition, gpu=None):
     """Retrieve a data loader"""
     return torch.utils.data.DataLoader(
-        dataset=NAME.data.Dataset(datasets, partition),
-        batch_size=NAME.BATCH_SIZE,
+        dataset=combnet.data.Dataset(datasets, partition),
+        batch_size=combnet.BATCH_SIZE,
         shuffle=partition == 'train',
-        num_workers=NAME.NUM_WORKERS,
+        num_workers=combnet.NUM_WORKERS,
         pin_memory=gpu is not None,
-        collate_fn=NAME.data.collate)
+        collate_fn=combnet.data.collate)

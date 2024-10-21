@@ -1,7 +1,7 @@
 import yapecs
 from pathlib import Path
 
-import NAME
+import combnet
 
 
 ###############################################################################
@@ -26,7 +26,7 @@ def parse_args():
     parser.add_argument(
         '--checkpoint',
         type=Path,
-        default=NAME.DEFAULT_CHECKPOINT,
+        default=combnet.DEFAULT_CHECKPOINT,
         help='The model checkpoint')
     parser.add_argument(
         '--gpu',
@@ -36,4 +36,4 @@ def parse_args():
 
 
 if __name__ == '__main__':
-    NAME.from_files_to_files(**vars(parse_args()))
+    combnet.from_files_to_files(**vars(parse_args()))

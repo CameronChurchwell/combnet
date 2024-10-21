@@ -1,6 +1,6 @@
 import torchutil
 
-import NAME
+import combnet
 
 
 ###############################################################################
@@ -9,7 +9,7 @@ import NAME
 
 
 @torchutil.notify('download')
-def datasets(datasets=NAME.DATASETS):
+def datasets(datasets=combnet.DATASETS):
     """Download datasets"""
     # TODO - download datasets
     pass
