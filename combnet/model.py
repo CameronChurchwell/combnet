@@ -1,22 +1,23 @@
 import torch
 
+import combnet
 
 ###############################################################################
 # Model
 ###############################################################################
 
+def Model():
+    """Create model based on config"""
 
-class Model(torch.nn.Module):
-    """Model definition"""
+    try:
+        module = getattr(combnet.models, combnet.MODEL_MODULE)
+    except:
+        # TODO improve these
+        raise ValueError(f'Could not find model module "{combnet.MODEL_MODULE}"')
 
-    # TODO - add hyperparameters as input args
-    def __init__(self):
-        super().__init__()
-
-        # TODO - define model
-        raise NotImplementedError
-
-    def forward(self):
-        """Perform model inference"""
-        # TODO - define model arguments and implement forward pass
-        raise NotImplementedError
+    try:
+        model_class = getattr(module, combnet.MODEL_CLASS)
+    except:
+        raise ValueError(f'Could not load model class {combnet.MODEL_CLASS} from module {combnet.MODEL_MODULE}')
+    
+    return model_class(**combnet.MODEL_KWARGS)

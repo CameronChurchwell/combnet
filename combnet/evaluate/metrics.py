@@ -7,24 +7,31 @@ import combnet
 # Aggregate metric
 ###############################################################################
 
-
-class Metrics:
-
+class Metrics():
     def __init__(self):
+        self.accuracy = torchutil.metrics.Accuracy()
         self.loss = Loss()
+        self.metrics = [
+            self.accuracy,
+            self.loss
+        ]
+        self.reset()
 
     def __call__(self):
-        return self.loss()
-
-    def update(self, logits, target):
-        # Detach from graph
-        logits = logits.detach()
-
-        # Update loss
-        self.loss.update(logits, target)
+        results = {
+            'loss': self.loss(),
+            'accuracy': self.accuracy()
+        }
+        return results
 
     def reset(self):
-        self.loss.reset()
+        for metric in self.metrics:
+            metric.reset()
+
+    def update(
+        self, predicted_logits, target_indices):
+        self.accuracy.update(predicted_logits.argmax(1), target_indices)
+        self.loss.update(predicted_logits, target_indices)
 
 
 ###############################################################################

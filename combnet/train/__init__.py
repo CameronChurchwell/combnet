@@ -1,1 +1,1 @@
-from .core import train
+from .core import train, loss

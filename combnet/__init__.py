@@ -21,8 +21,16 @@ from .config.static import *
 
 
 from .core import *
+
+from . import filters
+from . import functional
+from . import modules
+
+from . import models
+
 from .model import Model
-from .train import loss, train
+# from .train import loss, train
+from .train import train, loss
 from . import data
 from . import evaluate
 from . import load

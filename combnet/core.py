@@ -1,7 +1,9 @@
 import contextlib
+from typing import Union
 
 import torch
 import torchutil
+import torchaudio
 
 import combnet
 
@@ -177,3 +179,15 @@ def inference_context(model):
 
     # Prepare model for training
     model.train()
+
+
+def resample(
+    audio: torch.Tensor,
+    sample_rate: Union[int, float],
+    target_rate: Union[int, float] = combnet.SAMPLE_RATE):
+    """Perform audio resampling"""
+    if sample_rate == target_rate:
+        return audio
+    resampler = torchaudio.transforms.Resample(sample_rate, target_rate)
+    resampler = resampler.to(audio.device)
+    return resampler(audio)

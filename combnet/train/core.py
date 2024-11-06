@@ -14,30 +14,33 @@ import combnet
 
 
 @torchutil.notify('train')
-def train(datasets, directory=combnet.RUNS_DIR / combnet.CONFIG):
+def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
     """Train a model"""
     # Create output directory
     directory.mkdir(parents=True, exist_ok=True)
+
+
+    device = f'cuda:{gpu}' if gpu is not None else 'cpu'
 
     #######################
     # Create data loaders #
     #######################
 
     torch.manual_seed(combnet.RANDOM_SEED)
-    train_loader = combnet.data.loader(datasets, 'train')
-    valid_loader = combnet.data.loader(datasets, 'valid')
+    train_loader = combnet.data.loader(dataset, 'train', gpu=gpu)
+    valid_loader = combnet.data.loader(dataset, 'valid', gpu=gpu)
 
     #################
     # Create models #
     #################
 
-    model = combnet.Model()
+    model = combnet.Model().to(device)
 
     ####################
     # Create optimizer #
     ####################
 
-    optimizer = torch.optim.Adam(model.parameters())
+    optimizer = combnet.OPTIMIZER_FACTORY(model.parameters())
 
     ##############################
     # Maybe load from checkpoint #
@@ -63,12 +66,12 @@ def train(datasets, directory=combnet.RUNS_DIR / combnet.CONFIG):
     # Device placement #
     ####################
 
-    accelerator = accelerate.Accelerator(mixed_precision='fp16')
-    model, optimizer, train_loader, valid_loader = accelerator.prepare(
-        model,
-        optimizer,
-        train_loader,
-        valid_loader)
+    # accelerator = accelerate.Accelerator(mixed_precision='fp16')
+    # model, optimizer, train_loader, valid_loader = accelerator.prepare(
+    #     model,
+    #     optimizer,
+    #     train_loader,
+    #     valid_loader)
 
     #########
     # Train #
@@ -85,18 +88,16 @@ def train(datasets, directory=combnet.RUNS_DIR / combnet.CONFIG):
 
         for batch in train_loader:
 
-            # TODO - Unpack batch
-            () = batch
+            # TODO - generalize
+            x, y = batch
+            x = x.to(device)
+            y = y.to(device)
 
             # Forward pass
-            () = model(
-                # TODO - args
-            )
+            z = model(x)
 
             # Compute loss
-            losses = loss(
-                # TODO - args
-            )
+            losses = loss(z, y)
 
             ##################
             # Optimize model #
@@ -125,8 +126,8 @@ def train(datasets, directory=combnet.RUNS_DIR / combnet.CONFIG):
                         directory,
                         step,
                         model,
-                        accelerator,
-                        evaluation_steps=evaluation_steps)
+                        evaluation_steps=evaluation_steps,
+                        gpu=gpu)
                     evaluate_fn('train', train_loader)
                     evaluate_fn('valid', valid_loader)
 
@@ -139,7 +140,6 @@ def train(datasets, directory=combnet.RUNS_DIR / combnet.CONFIG):
                     directory / f'{step:08d}.pt',
                     model,
                     optimizer,
-                    accelerator=accelerator,
                     step=step,
                     epoch=epoch)
 
@@ -151,8 +151,8 @@ def train(datasets, directory=combnet.RUNS_DIR / combnet.CONFIG):
             if step >= combnet.STEPS:
                 break
 
-            # Raise if GPU tempurature exceeds 80 C
-            if any(gpu.temperature > 80. for gpu in GPUtil.getGPUs()):
+            # Raise if GPU tempurature exceeds 90 C
+            if any(gpu.temperature > 90. for gpu in GPUtil.getGPUs()):
                 raise RuntimeError(f'GPU is overheating. Terminating training.')
 
             ###########
@@ -176,7 +176,7 @@ def train(datasets, directory=combnet.RUNS_DIR / combnet.CONFIG):
         directory / f'{step:08d}.pt',
         model,
         optimizer,
-        accelerator=accelerator,
+        # accelerator=accelerator,
         step=step,
         epoch=epoch)
 
@@ -185,45 +185,55 @@ def train(datasets, directory=combnet.RUNS_DIR / combnet.CONFIG):
 # Evaluation
 ###############################################################################
 
-
+stop_at_evaluate = False
 def evaluate(
     directory,
     step,
     model,
-    accelerator,
+    # accelerator,
     condition,
     loader,
-    evaluation_steps=None
+    evaluation_steps=None,
+    gpu=None
 ):
+    if condition == 'valid' and stop_at_evaluate:
+        breakpoint()
     """Perform model evaluation"""
-    # Setup evaluation metrics
-    metrics = combnet.evaluate.Metrics()
 
-    for i, batch in enumerate(loader):
+    device = f'cuda:{gpu}' if gpu is not None else 'cpu'
 
-        # TODO - unpack batch
-        () = batch
+    with torch.no_grad():
+        # Setup evaluation metrics
+        metrics = combnet.evaluate.Metrics()
 
-        # Forward pass
-        () = model(
-            # TODO - args
-        )
+        for i, batch in enumerate(loader):
 
-        # Update metrics
-        metrics.update(
-            # TODO - args
-        )
+            # TODO - generalize
+            x, y = batch
+            x = x.to(device)
+            y = y.to(device)
 
-        # Stop when we exceed some number of batches
-        if evaluation_steps is not None and i + 1 == evaluation_steps:
-            break
+            # Forward pass
+            z = model(x)
 
-    # Format results
-    scalars = {
-        f'{key}/{condition}': value for key, value in metrics().items()}
+            # Compute loss
+            # losses = loss(z, y)
 
-    # Write to tensorboard
-    torchutil.tensorboard.update(directory, step, scalars=scalars)
+            # Update metrics
+            metrics.update(
+                z, y
+            )
+
+            # Stop when we exceed some number of batches
+            if evaluation_steps is not None and i + 1 == evaluation_steps:
+                break
+
+        # Format results
+        scalars = {
+            f'{key}/{condition}': value for key, value in metrics().items()}
+
+        # Write to tensorboard
+        torchutil.tensorboard.update(directory, step, scalars=scalars)
 
 
 ###############################################################################
@@ -233,5 +243,6 @@ def evaluate(
 
 def loss(logits, target):
     """Compute loss function"""
-    # TODO
-    pass
+    # if isinstance(target, tuple):
+    #     target = torch.tensor(target).to(logits.device)
+    return torch.nn.functional.cross_entropy(logits, target)

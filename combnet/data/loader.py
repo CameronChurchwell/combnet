@@ -3,12 +3,24 @@ import torch
 import combnet
 
 
-def loader(datasets, partition, gpu=None):
+def loader(
+    dataset, 
+    partition, 
+    features=combnet.FEATURES, 
+    num_workers=0, #TODO make this override?
+    batch_size=None,
+    gpu=None):
     """Retrieve a data loader"""
+    dataset=combnet.data.Dataset(
+        name_or_files=dataset,
+        partition=partition, 
+        features=features
+    )
+    collate = combnet.data.Collate(features=features)
     return torch.utils.data.DataLoader(
-        dataset=combnet.data.Dataset(datasets, partition),
-        batch_size=combnet.BATCH_SIZE,
+        dataset=dataset,
+        batch_size=combnet.BATCH_SIZE if batch_size is None else batch_size,
         shuffle=partition == 'train',
         num_workers=combnet.NUM_WORKERS,
-        pin_memory=gpu is not None,
-        collate_fn=combnet.data.collate)
+        pin_memory=(gpu is not None),
+        collate_fn=collate)

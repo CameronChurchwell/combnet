@@ -1,4 +1,4 @@
-import yapecs
+import argparse
 import shutil
 from pathlib import Path
 
@@ -10,7 +10,7 @@ import combnet
 ###############################################################################
 
 
-def main(config, dataset):
+def main(config, dataset, gpu=None):
     """Train from configuration"""
     # Create output directory
     directory = combnet.RUNS_DIR / config.stem
@@ -20,22 +20,25 @@ def main(config, dataset):
     shutil.copyfile(config, directory / config.name)
 
     # Train
-    combnet.train(dataset, directory)
+    combnet.train(dataset, directory, gpu=gpu)
 
 
 def parse_args():
     """Parse command-line arguments"""
-    parser = yapecs.ArgumentParser(description='Train a model')
+    parser = argparse.ArgumentParser(description='Train a model')
     parser.add_argument(
         '--config',
         type=Path,
         default=combnet.DEFAULT_CONFIGURATION,
         help='The configuration file')
     parser.add_argument(
-        '--datasets',
-        default=combnet.DATASETS,
-        nargs='+',
+        '--dataset',
+        default='giantsteps',
         help='The datasets to train on')
+    parser.add_argument(
+        '--gpu',
+        default=None,
+        help='The gpu index to use')
 
     return parser.parse_args()
 
