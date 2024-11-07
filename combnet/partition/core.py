@@ -22,7 +22,13 @@ def datasets(datasets=combnet.DATASETS):
         random.shuffle(stems)
 
         num_examples = len(stems)
-        cutoffs = int(num_examples * 0.8), int(num_examples * 0.9)
+
+        if dataset == 'giantsteps_mtg':
+            cutoffs = int(num_examples * 0.9), int(num_examples * 1) # 90-10 train-valid
+        elif dataset == 'giantsteps':
+            cutoffs = int(num_examples * 0), int(num_examples * 0) # testing only
+        else:
+            cutoffs = int(num_examples * 0.8), int(num_examples * 0.9)
 
         partition = {
             'train': stems[:cutoffs[0]],

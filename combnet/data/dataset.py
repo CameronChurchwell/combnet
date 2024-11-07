@@ -63,7 +63,7 @@ class Dataset(torch.utils.data.Dataset):
                     feature_values.append(f.read())
 
             elif feature == 'class':
-                if self.metadata.name == 'giantsteps':
+                if self.metadata.name in ['giantsteps', 'giantsteps_mtg']:
                     file = self.metadata.data_dir / (self.stems[index] + '.key')
                     with open(file, 'r') as f:
                         feature_values.append(torch.tensor(combnet.CLASS_MAP[f.read()]))

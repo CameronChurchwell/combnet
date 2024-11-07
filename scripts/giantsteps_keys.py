@@ -1,17 +1,19 @@
 import combnet
 from collections import defaultdict
 
-key_dir = combnet.DATA_DIR / 'giantsteps' / 'keys'
+for dataset in ['giantsteps', 'giantsteps_mtg']:
 
-key_files = key_dir.glob('*.key')
+    key_dir = combnet.DATA_DIR / dataset
 
-key_counts = defaultdict(lambda: 0)
+    key_files = key_dir.glob('*.key')
 
-for file in key_files:
-    with open(file, 'r') as f:
-        key = f.read()
-    key_counts[key] += 1
+    key_counts = defaultdict(lambda: 0)
 
-print(key_counts)
-print(key_counts.keys())
+    for file in key_files:
+        with open(file, 'r') as f:
+            key = f.read()
+        key_counts[key] += 1
+
+    print(key_counts)
+    print(key_counts.keys())
 

@@ -20,7 +20,7 @@ CONFIG = 'combnet'
 
 
 # Names of all datasets
-DATASETS = ['giantsteps']
+DATASETS = ['giantsteps', 'giantsteps_mtg']
 
 # Datasets for evaluation
 EVALUATION_DATASETS = DATASETS
@@ -36,6 +36,21 @@ HOP_LENGTH = 160
 N_FFT = 512
 
 CLASS_MAP = {}
+
+KEY_MAP = {
+    'A# minor': 'Bb minor',
+    'C# minor': 'Db minor',
+    'D# minor': 'Eb minor',
+    'F# minor': 'Gb minor',
+    'G# minor': 'Ab minor',
+    'A# major': 'Bb major',
+    'C# major': 'Db major',
+    'D# major': 'Eb major',
+    'F# major': 'Gb major',
+    'G# major': 'Ab major',
+}
+
+GIANTSTEPS_KEYS = ['E minor','F minor', 'G minor', 'Db minor', 'C minor', 'Ab major', 'Eb minor', 'G major', 'Bb minor', 'A minor', 'C major', 'D minor', 'Ab minor', 'F major', 'Gb minor', 'B minor', 'Eb major', 'Bb major', 'A major', 'B major', 'D major', 'E major', 'Gb major', 'Db major']
 
 ###############################################################################
 # Directories
