@@ -25,15 +25,20 @@ DATASETS = ['giantsteps', 'giantsteps_mtg']
 # Datasets for evaluation
 EVALUATION_DATASETS = DATASETS
 
-FEATURES = ['audio']
+FEATURES = ['spectrogram']
 
-SAMPLE_RATE = 16000
+INPUT_FEATURES = ['spectrogram']
 
-HOPSIZE = 160
+# SAMPLE_RATE = 16000
+SAMPLE_RATE = 44_100
 
-HOP_LENGTH = 160
+HOP_LENGTH = (SAMPLE_RATE // 5)
 
-N_FFT = 512
+HOPSIZE = HOP_LENGTH
+
+N_FFT = 8192
+
+WINDOW_SIZE = 8192
 
 CLASS_MAP = {}
 
@@ -81,8 +86,7 @@ RUNS_DIR = Path(__file__).parent.parent.parent / 'runs'
 
 
 # Number of steps between tensorboard logging
-# EVALUATION_INTERVAL = 2500  # steps
-EVALUATION_INTERVAL = 2_500  # steps
+EVALUATION_INTERVAL = 1_250  # steps
 
 # Number of steps to perform for tensorboard logging
 DEFAULT_EVALUATION_STEPS = 4
@@ -105,7 +109,7 @@ MODEL_KWARGS = {}
 
 
 # Batch size (per gpu)
-BATCH_SIZE = 4
+BATCH_SIZE = 8
 
 # Number of steps between saving checkpoints
 CHECKPOINT_INTERVAL = 25_000  # steps
@@ -119,6 +123,8 @@ try:
     NUM_WORKERS = int(os.cpu_count() / max(1, len(GPUtil.getGPUs())))
 except ValueError:
     NUM_WORKERS = os.cpu_count()
+
+MEMORY_CACHING = False
 
 # Seed for all random number generators
 RANDOM_SEED = 1234

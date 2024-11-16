@@ -2,11 +2,12 @@ import json
 import random
 
 from pathlib import Path
+import re
 
 import combnet
 
 
-def datasets(datasets=combnet.DATASETS):
+def datasets(datasets=combnet.DATASETS, exclude_pattern=None):
     """Partition datasets"""
     for dataset in datasets:
 
@@ -16,6 +17,12 @@ def datasets(datasets=combnet.DATASETS):
         dataset_dir: Path = combnet.DATA_DIR / dataset
 
         audio_files = dataset_dir.glob('*.wav')
+
+        if exclude_pattern is not None:
+            regex = re.compile(exclude_pattern)
+            audio_files = [
+                f for f in audio_files if not regex.search(str(f))
+            ]
 
         stems = [f.stem for f in audio_files]
 

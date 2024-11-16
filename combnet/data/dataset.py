@@ -21,7 +21,8 @@ class Dataset(torch.utils.data.Dataset):
         self,
         name_or_files,
         partition=None,
-        features=['audio']):
+        features=['audio'],
+        memory_caching=combnet.MEMORY_CACHING):
         self.features = features
         self.metadata = Metadata(
             name_or_files,
@@ -30,9 +31,19 @@ class Dataset(torch.utils.data.Dataset):
         self.stems = self.metadata.stems
         self.audio_files = self.metadata.audio_files
         self.lengths = self.metadata.lengths
+        self.memory_caching = False
+        if memory_caching:
+            self.memory_cache = []
+            for index in range(0, len(self)):
+                self.memory_cache.append(self[index])
+        self.memory_caching = memory_caching
 
     def __getitem__(self, index):
         """Retrieve the indexth item"""
+
+        if self.memory_caching:
+            return self.memory_cache[index]
+
         stem = self.stems[index]
 
         feature_values = []
@@ -80,7 +91,7 @@ class Dataset(torch.utils.data.Dataset):
             # Add input representation
             else:
                 feature_values.append(
-                    torch.load(self.cache / f'{stem}-{feature}.pt'))
+                    torch.load(self.cache / f'{stem}-{feature}.pt', weights_only=True))
 
         return feature_values
 
@@ -121,7 +132,7 @@ class Metadata:
         self,
         name_or_files,
         partition=None,
-        overwrite_cache=True): #TODO change back to False
+        overwrite_cache=False): #TODO change back to False
         """Create a metadata object for the given dataset or sources"""
         lengths = {}
 

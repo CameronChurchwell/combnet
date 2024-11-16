@@ -11,6 +11,11 @@ def parse_args():
         default=combnet.DATASETS,
         nargs='+',
         help='The datasets to partition')
+    parser.add_argument(
+        '--exclude-pattern',
+        default=None,
+        help='A regex pattern which, if present in the full path of a file, is grounds for its exlcusion'
+    )
     return parser.parse_args()
 
 

@@ -4,6 +4,7 @@ import accelerate
 import GPUtil
 import torch
 import torchutil
+import time
 
 import combnet
 
@@ -152,8 +153,8 @@ def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
                 break
 
             # Raise if GPU tempurature exceeds 90 C
-            if any(gpu.temperature > 90. for gpu in GPUtil.getGPUs()):
-                raise RuntimeError(f'GPU is overheating. Terminating training.')
+            if step % 100 == 0 and (any(gpu.temperature > 90. for gpu in GPUtil.getGPUs())):
+                    raise RuntimeError(f'GPU is overheating. Terminating training.')
 
             ###########
             # Updates #

@@ -19,4 +19,4 @@ def parse_args():
     return parser.parse_args()
 
 
-combnet.preprocess.datasets(**vars(parse_args()))
+combnet.data.preprocess.datasets(**vars(parse_args()))
