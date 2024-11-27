@@ -4,7 +4,7 @@ CONFIG = 'giantsteps-conv-semi'
 
 SAMPLE_RATE = 44_100
 
-HOP_LENGTH = (SAMPLE_RATE // 5)
+HOPSIZE = (SAMPLE_RATE // 5)
 
 N_FFT = 8192
 

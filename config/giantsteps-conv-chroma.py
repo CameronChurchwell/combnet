@@ -4,7 +4,7 @@ CONFIG = 'giantsteps-conv-chroma'
 
 SAMPLE_RATE = 44_100
 
-HOP_LENGTH = (SAMPLE_RATE // 5)
+HOPSIZE = (SAMPLE_RATE // 5)
 
 N_FFT = 8192
 
@@ -16,17 +16,17 @@ CLASS_MAP = {k: i for i, k in enumerate(GIANTSTEPS_KEYS)}
 
 NUM_CLASSES = len(GIANTSTEPS_KEYS)
 
-NUM_COMB_FILTERS = 24
-
 MODEL_MODULE = 'classifiers'
 
 MODEL_CLASS = 'ConvClassifier'
 
-BATCH_SIZE = 16
+BATCH_SIZE = 1
 
 import torch
 from functools import partial
 OPTIMIZER_FACTORY = partial(torch.optim.SGD, lr=0.001, momentum=0.9, weight_decay=1e-4)
+# OPTIMIZER_FACTORY = partial(torch.optim.AdamW, lr=0.000001, weight_decay=1e-4)
+# OPTIMIZER_FACTORY = partial(torch.optim.AdamW, lr=0.000005, weight_decay=1e-4)
 # OPTIMIZER_FACTORY = partial(torch.optim.SGD, lr=0.0005, momentum=0.9, weight_decay=1e-4)
 
 MODEL_KWARGS = {'features': 'chroma'}

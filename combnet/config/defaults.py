@@ -23,7 +23,7 @@ CONFIG = 'combnet'
 DATASETS = ['giantsteps', 'giantsteps_mtg']
 
 # Datasets for evaluation
-EVALUATION_DATASETS = DATASETS
+EVALUATION_DATASETS = ['giantsteps']
 
 FEATURES = ['spectrogram']
 
@@ -32,9 +32,7 @@ INPUT_FEATURES = ['spectrogram']
 # SAMPLE_RATE = 16000
 SAMPLE_RATE = 44_100
 
-HOP_LENGTH = (SAMPLE_RATE // 5)
-
-HOPSIZE = HOP_LENGTH
+HOPSIZE = (SAMPLE_RATE // 5)
 
 N_FFT = 8192
 

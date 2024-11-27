@@ -6,7 +6,7 @@ import combnet
 # Model
 ###############################################################################
 
-def Model():
+def Model() -> torch.nn.Module:
     """Create model based on config"""
 
     try:
@@ -19,5 +19,5 @@ def Model():
         model_class = getattr(module, combnet.MODEL_CLASS)
     except:
         raise ValueError(f'Could not load model class {combnet.MODEL_CLASS} from module {combnet.MODEL_MODULE}')
-    
+
     return model_class(**combnet.MODEL_KWARGS)

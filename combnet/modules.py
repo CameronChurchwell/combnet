@@ -1,6 +1,6 @@
 import torch
 from combnet.functional import lc_batch_comb
-from combnet.filters import fractional_anticomb_interference_fiir, fractional_comb_fiir
+from combnet.filters import fractional_anticomb_interference_fiir, fractional_comb_fiir, fractional_comb_fir_multitap
 
 # Wrap between K and N
 def wrap(x, K, N):
@@ -12,7 +12,7 @@ dr = torch.logspace( 0, -2, 1024) # Decay for high frequencies to allow harmonic
 
 class Comb1d(torch.nn.Module):
     def __init__(self, in_channels, out_channels, alpha=.6, gain=None,
-        use_bias = False, learn_alpha=False, groups = 1, learn_gain=False, sr=16000):
+        use_bias = False, learn_alpha=False, groups=1, learn_gain=False, sr=16000):
         super().__init__()
 
         self.sr = sr
@@ -57,14 +57,13 @@ class Comb1d(torch.nn.Module):
                 regularization += torch.dot( w1/w1.std(), w2/w2.std())
         return regularization, (self.g.clamp(min=0.01) ** 0.5).sum()
         # return torch.tensor(0.0, device=self.f.device), torch.tensor(0.0, device=self.f.device)
-        
-    
 
     def __call__( self, x):
         d = x.device
-        return lc_batch_comb( x, self.f.to(d), self.a.to(d), self.sr, self.g.to(d)) + self.b.to(d)
+        # return lc_batch_comb( x, self.f.to(d), self.a.to(d), self.sr, self.g.to(d)) + self.b.to(d)
+        return fractional_comb_fir_multitap(x, self.f.to(d), self.a.to(d), self.sr) + self.b.to(d)
         # return fractional_comb_fiir( x, self.f.to(d), self.a.to(d), self.sr) + self.b.to(d)
-    
+
 
 class CombInterference1d(torch.nn.Module):
 

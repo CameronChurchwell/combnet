@@ -13,7 +13,7 @@ import combnet
 def main(config, dataset, gpu=None):
     """Train from configuration"""
     # Create output directory
-    directory = combnet.RUNS_DIR / config.stem
+    directory = combnet.RUNS_DIR / combnet.CONFIG
     directory.mkdir(parents=True, exist_ok=True)
 
     # Save configuration

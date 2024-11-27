@@ -25,7 +25,7 @@ def from_audios(audio, lengths, gpu=None):
         from_audio.device = audio.device
 
     # Pad audio
-    size = (combnet.N_FFT - combnet.HOP_LENGTH) // 2
+    size = (combnet.N_FFT - combnet.HOPSIZE) // 2
     audio = torch.nn.functional.pad(
         audio,
         (size, size),
@@ -35,7 +35,7 @@ def from_audios(audio, lengths, gpu=None):
     stft = torch.stft(
         audio.squeeze(1),
         n_fft=combnet.N_FFT,
-        hop_length=combnet.HOP_LENGTH,
+        hop_length=combnet.HOPSIZE,
         win_length=combnet.WINDOW_SIZE,
         window=from_audio.window,
         center=False,

@@ -1,6 +1,7 @@
 import resampy
 import soundfile
 import torchutil
+import torchaudio
 
 import combnet
 
@@ -19,8 +20,6 @@ SEMITONES = [
     'G'
 ]
 
-# Adapted from promonet repo, original code written by Max Morrison
-
 ###############################################################################
 # Pitch-shifting data augmentation
 ###############################################################################
@@ -29,13 +28,27 @@ SEMITONES = [
 def from_audio(audio, sample_rate, shift):
     """Perform pitch-shifting data augmentation on audio"""
 
-    ratio = 2 ** (shift / 12)
+    cents = shift * 100
+
+    audio, _ = torchaudio.sox_effects.apply_effects_tensor(
+        audio,
+        sample_rate,
+        [
+            ['pitch', f'{cents}'],
+            ['rate', str(int(combnet.SAMPLE_RATE))],
+            ['dither']
+        ]
+    )
+
+    return audio
+
+    # ratio = 2 ** (shift / 12)
 
 
-    # Augment audio
-    augmented = resampy.resample(audio, int(ratio * sample_rate), sample_rate)
+    # # Augment audio
+    # augmented = resampy.resample(audio, int(ratio * sample_rate), sample_rate)
 
-    return augmented
+    # return augmented
     # Resample to combnet sample rate
     # return resampy.resample(augmented, sample_rate, combnet.SAMPLE_RATE)
 
@@ -51,11 +64,12 @@ def from_key(key, shift):
 
 def from_audio_file(audio_file, shift):
     """Perform pitch-shifting data augmentation on audio file"""
-    audio, sr = soundfile.read(str(audio_file))
-    audio = audio.T
+    # audio, sr = soundfile.read(str(audio_file))
+    # audio = audio.T
+    audio, sr = torchaudio.load(audio_file)
     if len(audio.shape) == 2:
         audio = audio.sum(0, keepdims=True)
-    return from_audio(audio, sr, shift).T
+    return from_audio(audio, sr, shift)
 
 def from_key_file(key_file, shift):
     """Perform pitch-shifting data augmentation on key file"""
@@ -67,7 +81,8 @@ def from_file_to_file(audio_file, key_file, output_file, output_key_file, shift)
     """Perform pitch-shifting data augmentation on audio file and save"""
     augmented_audio = from_audio_file(audio_file, shift)
     augmented_key = from_key_file(key_file, shift)
-    soundfile.write(str(output_file), augmented_audio, combnet.SAMPLE_RATE)
+    torchaudio.save(str(output_file), augmented_audio, combnet.SAMPLE_RATE)
+    # soundfile.write(str(output_file), augmented_audio, combnet.SAMPLE_RATE)
     with open(output_key_file, 'w+') as f:
         f.write(augmented_key)
 

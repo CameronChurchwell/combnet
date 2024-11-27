@@ -19,6 +19,9 @@ def datasets(
     """Perform evaluation"""
     device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
 
+    # load model with checkpoint
+    model = combnet.load.model(checkpoint).to(device)
+
     # Containers for results
     overall, granular = {}, {}
 
@@ -39,23 +42,24 @@ def datasets(
 
         # Iterate over test set
         for batch in torchutil.iterator(
-            combnet.data.loader(dataset, 'test'),
+            combnet.data.loader(dataset, 'test', features=combnet.FEATURES + ['stem']),
             f'Evaluating {combnet.CONFIG} on {dataset}'
         ):
 
             # Reset file metrics
             file_metrics.reset()
 
-            # TODO - unpack
-            () = batch
+            (x, y, stem) = batch
 
-            # TODO - copy to device
+            x = x.to(device)
+            y = y.to(device)
 
-            # TODO - inference
+            z = model(x)
 
             # Update metrics
             args = (
-                # TODO - args
+                z,
+                y
             )
             file_metrics.update(*args)
             dataset_metrics.update(*args)

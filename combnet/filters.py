@@ -25,7 +25,153 @@ def single_fractional_comb_iir( x, f0, a, sr):
     # Do it
     return y
 
+def single_comb_iir_faithful(x, f0, a, sr):
+    if x.dim() == 2:
+        x = x.unsqueeze(0)
+    assert x.dim() == 3
+    f0 = float(f0)
+    sr = int(sr)
+    l = int(round(sr/f0))
+    y = x.clone()
+    for i in range(l, x.shape[-1]):
+        y[..., i] += a*y[..., i-l]
+    return y
+
+def single_comb_fir(x, f0, a, sr):
+    if x.dim() == 2:
+        x = x.unsqueeze(0)
+    assert x.dim() == 3
+    f0 = float(f0)
+    sr = int(sr)
+    l = int(round(sr/f0))
+    y = x.clone()
+    y[..., l:] += a*y[..., :-l]
+    return y
+
+def single_comb_fir_multitap(x, f0, a, sr):
+    y = x
+    if x.dim() == 2:
+        x = x.unsqueeze(0)
+    assert x.dim() == 3
+    f0 = float(f0)
+    sr = int(sr)
+    l = int(round(sr/f0))
+    y = x.clone()
+    for i in range(1, 10):
+        y[..., i*l:] += (a**i)*x[..., :-i*l]
+    return y
+
+def single_fractional_comb_fir_multitap(x, f0, a, sr):
+    x = x.squeeze()
+    l = sr/f0
+    t = torch.arange(sr//10-1, -1, step=-1, device=x.device)
+
+    f = torch.zeros(sr//10, device=x.device)
+    f[-1] = 1.
+    # TODO you can definitely remove this loop, but it might be less
+    #  memory efficient and still not that much faster... The slow part is the conv
+    for i in range(1, 11):
+        f += (a ** i) * torch.sinc(t-i*l)
+    # from matplotlib import pyplot as plt
+    # plt.plot(f); plt.gcf().set_size_inches(10, 7.5); plt.show()
+    x = torch.nn.functional.pad(x, (sr//10-1, 0))
+    y = torch.nn.functional.conv1d(
+        x[None,None], 
+        f[None,None],
+    )[0,0]
+    return y
+    # return convolve(x, f)
+
+def fractional_comb_fir_multitap(x, f0, a, sr):
+    if x.dim() == 1: # time
+        x = x[None, None]
+    elif x.dim() == 2: # channels x time
+        x = x[None]
+
+    assert x.dim() == 3 # batch x channels x time
+
+    if not isinstance(f0, torch.Tensor):
+        f0 = torch.tensor([[f0]], device=x.device, dtype=x.dtype)
+    if f0.dim() == 0:
+        f0 = f0[None, None]
+    if not isinstance(a, torch.Tensor):
+        a = torch.tensor([[a]], device=x.device, dtype=x.dtype)
+    if a.dim() == 0:
+        a = a[None, None]
+
+    assert f0.dim() == 2 # out_channels x in_channels
+    assert a.dim() == 2 # out_channels x in_channels
+
+    l = sr/f0 # out_channels x in_channels
+    t = torch.arange(sr//10-1, -1, step=-1, device=x.device) # kernel_size
+
+    # Tensor method
+    taps = torch.arange(1, 11, device=x.device, dtype=x.dtype)[..., None, None, None] # n_taps x 1 x 1 x 1
+    delays = taps * l[None, ..., None] # n_taps x out_channels x in_channels x 1
+    gains = a[None, ..., None] ** taps # n_taps x out_channels x in_channels x 1
+    time = t[None, None, None] # 1 x 1 x 1 x kernel_size
+    shifted_time = time - delays # n_taps x out_channels x in_channels x kernel_size
+    f = (gains * torch.sinc(shifted_time)).sum(0) # out_channels x in_channels x kernel_size
+
+    # Loop method
+    # f = torch.zeros((f0.shape[0], f0.shape[1], sr//10), device=x.device) # out_channels x in_channels x kernel_size
+    # for i in range(1, 11):
+    #     delay = (i * l)[..., None] # out_channels x in_channels x 1
+    #     gain = (a ** i)[..., None] # out_channels x in_channels x 1
+    #     time = t[None, None] # 1 x 1 x kernel_size
+    #     shifted_time = time - delay # out_channels x in_channels x kernel_size
+    #     f += gain * torch.sinc(shifted_time)
+
+    f[..., -1] = 1. # original signal (x[i])
+
+    x = torch.nn.functional.pad(x, (sr//10-1, 0))
+
+    y = torch.nn.functional.conv1d(
+        x, # batch x in_channels x time
+        f, # out_channels x in_channels x kernel_size
+    ) # batch x out_channels x time
+
+    return y
+
+def single_fractional_comb_modulo(x, f0, a, sr):
+    x = x.squeeze()
+    l = sr/f0
+    # l = (sr//f0)
+    # import pdb; pdb.set_trace()
+    t = torch.arange(0, sr//20)
+
+    # f = t % l
+    f = torch.remainder(t, l)
+    a = (a ** (t/l))
+
+    # f = (torch.sinc(f)) * a
+    import pdb; pdb.set_trace()
+    f = torch.sinc(f) * a
+    # f = torch.sinc(f - f % 1.) * a
+
+    # from matplotlib import pyplot as plt
+    # plt.plot(f); plt.gcf().set_size_inches(10, 7.5); plt.show()
+
+    # f = torch.flip(f, (0,))
+
+    return convolve(x, f)
+
+def single_comb_iir_fast(x, f0, a, sr):
+    if x.dim() == 2:
+        x = x.unsqueeze(0)
+    assert x.dim() == 3
+    f0 = float(f0)
+    sr = int(sr)
+    l = int(round(sr/f0))
+    y = x.clone()
+    step = l
+    for i in range(l, x.shape[-1]-step, step):
+            y[..., i:i+step] += a*y[..., i-l:i-l+step]
+    return y
+
 def single_fractional_comb_iir_faithful(x, f0, a, sr):
+    if x.dim() == 2:
+        x = x.unsqueeze(0)
     assert x.dim() == 3
     # Make the filter
     l = sr/f0
@@ -58,9 +204,11 @@ def single_fractional_comb_fiir( x, f0, a, sr):
     return torch.fft.irfft( lp * torch.fft.rfft( x, n=l) / torch.fft.rfft( f, n=l))[:x.shape[-1]] # change to fast conv instead?
 
 def fractional_comb_fiir(x, f0, a, sr):
-    if x.dim() == 3:
+    if x.dim() == 2: # audio_channels x time
+        x = x[None, None]
+    if x.dim() == 3: # batch x audio_channels x time
         x = x[:, None]
-    assert x.dim() == 4
+    assert x.dim() == 4 # batch x feature_channels x audio_channels x time
     if not isinstance(f0, torch.Tensor):
         f0 = torch.tensor(f0).to(x.device)
     if not isinstance(a, torch.Tensor):
@@ -68,19 +216,26 @@ def fractional_comb_fiir(x, f0, a, sr):
     if f0.dim() == 0:
         f0 = f0[None, None]
     assert f0.dim() == 2
+    # TODO something might be wrong here with the shape of `a`
+    assert a.dim() == 0 or a.dim() == 2
+    if a.dim() == 2:
+        a = a[..., None]
     # Make the filter
     l = sr/f0
-    t = (torch.arange( sr//10, device=x.device)[None, None, :] - l[..., None]).to(x.device)
-    f = -a * torch.sinc( t) * torch.exp( -.1 * t**2)
+    t = (torch.arange(sr//10, device=x.device)[None, None, :] - l[..., None]).to(x.device)
+    f = -a * torch.sinc(t) * torch.exp(-.1 * t**2)
     f[..., 0] = 1 # a[0] should be 1!
 
     l = x.shape[-1]
     # lp = ones( l//2+1).at[:int(l*500/sr)].set( linspace( 0, 1, int(l*500//sr))**2) # lowpass filter to remove pesky DC peak
-    lp = torch.ones( l//2+1, device=x.device)
+    lp = torch.ones(l//2+1, device=x.device)
     lp[:80] = 0 # lowpass filter to remove pesky DC peak
     # from matplotlib import pyplot as plt
     # plt.plot(1/abs(torch.fft.rfft( f, n=l).squeeze())); plt.show()
-    return torch.fft.irfft((lp * torch.fft.rfft( x, n=l) / torch.fft.rfft( f, n=l)[None]).sum(2))[:x.shape[-1]] # change to fast conv instead?
+    x_fft = torch.fft.rfft(x, n=l)
+    f_fft = torch.fft.rfft(f, n=l)
+    filtered_fft = (lp * x_fft / f_fft[None]).sum(2)
+    return torch.fft.irfft(filtered_fft)[:x.shape[-1]] # change to fast conv instead?
 
 def fractional_anticomb_interference_fiir(x, f0, a, sr, residual_mode=False):
     assert x.dim() == 3
@@ -187,6 +342,8 @@ def single_fractional_comb_fir( x, f0, a, sr):
 def single_fractional_comb_diric( x, f0, a, sr):
     T = 1025 #(640*a).astype( int)
 
+    x = x.squeeze()
+
     # Vanilla Dirichlet kernel implementation (peaks galore!)
     def diric( x, N):
         x = x % (2*torch.pi)
@@ -208,7 +365,13 @@ def single_fractional_comb_diric( x, f0, a, sr):
     # Auto-select n to not alias
     n = int( 2*((sr/f0)//2)-1)
 
+    # r = torch.arange( 0, T*torch.pi, torch.pi).to(x.device)
     a = diric2( f0*(torch.arange( 0, T*torch.pi, torch.pi)+1e-3)/sr, n) * torch.kaiser_window( T, False, beta=16.)
+    # a = diric2( f0*(torch.arange( 0, T*torch.pi, torch.pi)+1e-3)/sr, n)
+    # a = diric( f0*(r+1e-3)/sr, n)
+    # from matplotlib import pyplot as plt
+    # plt.show()
+    # plt.plot(a); plt.show()
     return convolve( x, a)
 
 

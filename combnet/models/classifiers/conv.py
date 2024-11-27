@@ -107,6 +107,14 @@ class Permute(torch.nn.Module):
 
     def forward(self, x):
         return x.permute(*self.dims)
+    
+class Sum(torch.nn.Module):
+    def __init__(self, dim):
+        super().__init__()
+        self.dim = dim
+
+    def forward(self, x):
+        return x.sum(self.dim, keepdims=True)
 
 class ConvClassifier(torch.nn.Module):
     def __init__(self, features='quartertones'):
@@ -159,17 +167,21 @@ class ConvClassifier(torch.nn.Module):
             torch.nn.Conv2d(8, 8, (5, 5), (1, 1), (2, 2)),
             torch.nn.ELU(),
 
-            torch.nn.Conv2d(8, 1, (5, 5), (1, 1), (2, 2)), 
+            torch.nn.Conv2d(8, 8, (5, 5), (1, 1), (2, 2)), 
             torch.nn.ELU(),
 
-            #TODO figure out how they got down to just 1 channel? This might be it, but better to double check...
+            Sum(1),
             torch.nn.Flatten(1, 2),
             Permute(0, 2, 1),
+            # Permute(0, 1, 3, 2),
 
             torch.nn.Linear(self.filters.shape[0], 48),
             torch.nn.ELU(),
 
             Permute(0, 2, 1),
+            # Permute(0, 1, 3, 2),
+            # Sum(1),
+            # torch.nn.Flatten(1, 2),
 
             torch.nn.AdaptiveAvgPool1d(1),
             torch.nn.ELU(),
@@ -192,7 +204,7 @@ class ConvClassifier(torch.nn.Module):
         # spec = torch.stft(
         #     audio,
         #     n_fft=combnet.N_FFT,
-        #     hop_length=combnet.HOP_LENGTH,
+        #     hop_length=combnet.HOPSIZE,
         #     win_length=combnet.WINDOW_SIZE,
         #     window=self.window,
         #     center=False,

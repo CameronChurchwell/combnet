@@ -94,6 +94,9 @@ def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
             x = x.to(device)
             y = y.to(device)
 
+            # if step % 1000 == 0:
+            #     print(torch.cuda.memory_summary(device))
+
             # Forward pass
             z = model(x)
 
@@ -153,8 +156,8 @@ def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
                 break
 
             # Raise if GPU tempurature exceeds 90 C
-            if step % 100 == 0 and (any(gpu.temperature > 90. for gpu in GPUtil.getGPUs())):
-                    raise RuntimeError(f'GPU is overheating. Terminating training.')
+            # if step % 100 == 0 and (any(gpu.temperature > 90. for gpu in GPUtil.getGPUs())):
+            #         raise RuntimeError(f'GPU is overheating. Terminating training.')
 
             ###########
             # Updates #
@@ -173,13 +176,16 @@ def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
     progress.close()
 
     # Save final model
+    checkpoint_file = directory / f'{step:08d}.pt'
     torchutil.checkpoint.save(
-        directory / f'{step:08d}.pt',
+        checkpoint_file,
         model,
         optimizer,
         # accelerator=accelerator,
         step=step,
         epoch=epoch)
+
+    combnet.evaluate.datasets(checkpoint=checkpoint_file, gpu=gpu)
 
 
 ###############################################################################
@@ -216,9 +222,6 @@ def evaluate(
 
             # Forward pass
             z = model(x)
-
-            # Compute loss
-            # losses = loss(z, y)
 
             # Update metrics
             metrics.update(

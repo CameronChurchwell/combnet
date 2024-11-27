@@ -20,7 +20,7 @@ def loader(
     return torch.utils.data.DataLoader(
         dataset=dataset,
         batch_size=combnet.BATCH_SIZE if batch_size is None else batch_size,
-        shuffle=partition == 'train',
+        shuffle='train' in partition or 'valid' in partition,
         num_workers=combnet.NUM_WORKERS,
         pin_memory=(gpu is not None),
         collate_fn=collate)
