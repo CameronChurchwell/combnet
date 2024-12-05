@@ -41,7 +41,18 @@ def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
     # Create optimizer #
     ####################
 
-    optimizer = combnet.OPTIMIZER_FACTORY(model.parameters())
+    if combnet.PARAM_GROUPS is not None:
+        assert hasattr(model, 'parameter_groups')
+        groups = model.parameter_groups()
+        assert set(groups.keys()) == set(combnet.PARAM_GROUPS.keys())
+        param_groups = []
+        for name, g in combnet.PARAM_GROUPS.items():
+            g['params'] = groups[name]
+            param_groups.append(g)
+        import pdb; pdb.set_trace()
+        optimizer = combnet.OPTIMIZER_FACTORY(param_groups)
+    else:
+        optimizer = combnet.OPTIMIZER_FACTORY(model.parameters())
 
     ##############################
     # Maybe load from checkpoint #

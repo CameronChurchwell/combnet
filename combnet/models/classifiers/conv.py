@@ -72,7 +72,7 @@ def madmom_filters(bands_per_octave=24):
         num_bands=bands_per_octave,
         fmin=65,
         fmax=2100,
-        unique_filters=False
+        unique_filters=True
     )).T
 
 def evenly_spaced_filters(
@@ -115,6 +115,12 @@ class Sum(torch.nn.Module):
 
     def forward(self, x):
         return x.sum(self.dim, keepdims=True)
+    
+
+class Break(torch.nn.Module):
+    def forward(self, x):
+        import pdb; pdb.set_trace()
+        return x
 
 class ConvClassifier(torch.nn.Module):
     def __init__(self, features='quartertones'):
@@ -170,12 +176,13 @@ class ConvClassifier(torch.nn.Module):
             torch.nn.Conv2d(8, 8, (5, 5), (1, 1), (2, 2)), 
             torch.nn.ELU(),
 
-            Sum(1),
+            # Sum(1),
+            # Break(),
             torch.nn.Flatten(1, 2),
             Permute(0, 2, 1),
             # Permute(0, 1, 3, 2),
 
-            torch.nn.Linear(self.filters.shape[0], 48),
+            torch.nn.Linear(self.filters.shape[0] * 8, 48),
             torch.nn.ELU(),
 
             Permute(0, 2, 1),

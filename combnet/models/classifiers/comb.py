@@ -59,14 +59,14 @@ class CombClassifier(torch.nn.Module):
             torch.nn.Conv2d(8, 8, (5, 5), (1, 1), (2, 2)),
             torch.nn.ELU(),
 
-            torch.nn.Conv2d(8, 1, (5, 5), (1, 1), (2, 2)), 
+            torch.nn.Conv2d(8, 8, (5, 5), (1, 1), (2, 2)), 
             torch.nn.ELU(),
 
             #TODO figure out how they got down to just 1 channel? This might be it, but better to double check...
             torch.nn.Flatten(1, 2),
             Permute(0, 2, 1),
 
-            torch.nn.Linear(n_filters, 48),
+            torch.nn.Linear(n_filters*8, 48),
             torch.nn.ELU(),
 
             Permute(0, 2, 1),
@@ -78,6 +78,12 @@ class CombClassifier(torch.nn.Module):
             torch.nn.Linear(48, 24),
             torch.nn.Softmax(dim=1)
         )
+
+    def parameter_groups(self):
+        groups = {}
+        groups['f0'] = [self.layers[0].f]
+        groups['main'] = list(self.layers[1:].parameters()) + [self.layers[0].a] + [self.layers[0].g]
+        return groups
 
     def forward(self, audio):
         return self.layers(audio)

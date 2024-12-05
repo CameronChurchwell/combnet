@@ -30,7 +30,7 @@ STEPS = 100_000
 
 EVALUATION_INTERVAL = 1250
 
-BATCH_SIZE = 16
+BATCH_SIZE = 8
 
 import torch
 from functools import partial

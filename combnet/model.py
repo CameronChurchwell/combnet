@@ -9,6 +9,8 @@ import combnet
 def Model() -> torch.nn.Module:
     """Create model based on config"""
 
+    torch.manual_seed(combnet.RANDOM_SEED)
+
     try:
         module = getattr(combnet.models, combnet.MODEL_MODULE)
     except:
@@ -20,4 +22,6 @@ def Model() -> torch.nn.Module:
     except:
         raise ValueError(f'Could not load model class {combnet.MODEL_CLASS} from module {combnet.MODEL_MODULE}')
 
-    return model_class(**combnet.MODEL_KWARGS)
+    model = model_class(**combnet.MODEL_KWARGS)
+
+    return model

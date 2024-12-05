@@ -31,8 +31,6 @@ def datasets(datasets: List[str]):
 
 def from_files_to_files(audio_files):
     """Perform data augmentation on audio files"""
-    torch.manual_seed(combnet.RANDOM_SEED)
-
     shifts = list(range(MAX_SHIFTS[0], 0)) + list(range(1, MAX_SHIFTS[1]+1))
 
     file_shift_pairs = sum([

@@ -17,6 +17,9 @@ def loader(
         features=features
     )
     collate = combnet.data.Collate(features=features)
+    test = 'test' in partition
+    if test:
+        batch_size = 1
     return torch.utils.data.DataLoader(
         dataset=dataset,
         batch_size=combnet.BATCH_SIZE if batch_size is None else batch_size,
