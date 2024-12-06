@@ -49,7 +49,6 @@ def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
         for name, g in combnet.PARAM_GROUPS.items():
             g['params'] = groups[name]
             param_groups.append(g)
-        import pdb; pdb.set_trace()
         optimizer = combnet.OPTIMIZER_FACTORY(param_groups)
     else:
         optimizer = combnet.OPTIMIZER_FACTORY(model.parameters())
@@ -130,6 +129,16 @@ def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
             ############
             # Evaluate #
             ############
+
+            if step % combnet.LOG_INTERVAL == 0:
+                if hasattr(model, 'parameter_groups'):
+                    groups = model.parameter_groups()
+                    if 'f0' in groups:
+                        f = groups['f0'][0] # TODO expand to more than just first?
+                        f = f.detach().cpu().flatten() #TODO expand to handle non-flat
+                        f = {str(i): f_val for i, f_val in enumerate(f)}
+                        grouped_scalars = {f'f0': f}
+                        torchutil.tensorboard.update(directory, step, grouped_scalars=grouped_scalars)
 
             if step % combnet.EVALUATION_INTERVAL == 0:
                 with combnet.inference_context(model):

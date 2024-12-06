@@ -83,8 +83,11 @@ RUNS_DIR = Path(__file__).parent.parent.parent / 'runs'
 ###############################################################################
 
 
-# Number of steps between tensorboard logging
+# Number of steps between evaluation tensorboard logging
 EVALUATION_INTERVAL = 1_250  # steps
+
+# Number of steps between non-evaluation tensorboard logging
+LOG_INTERVAL = 100
 
 # Number of steps to perform for tensorboard logging
 DEFAULT_EVALUATION_STEPS = 4

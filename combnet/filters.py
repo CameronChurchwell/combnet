@@ -133,6 +133,60 @@ def fractional_comb_fir_multitap(x, f0, a, sr):
 
     return y
 
+def fractional_comb_fir_multitap_sparse(x, f0, a, sr):
+    if x.dim() == 1: # time
+        x = x[None, None]
+    elif x.dim() == 2: # channels x time
+        x = x[None]
+
+    assert x.dim() == 3 # batch x channels x time
+
+    if not isinstance(f0, torch.Tensor):
+        f0 = torch.tensor([[f0]], device=x.device, dtype=x.dtype)
+    if f0.dim() == 0:
+        f0 = f0[None, None]
+    if not isinstance(a, torch.Tensor):
+        a = torch.tensor([[a]], device=x.device, dtype=x.dtype)
+    if a.dim() == 0:
+        a = a[None, None]
+
+    assert f0.dim() == 2 # out_channels x in_channels
+    assert a.dim() == 2 # out_channels x in_channels
+
+    l = sr/f0 # out_channels x in_channels
+    t = torch.arange(sr//10-1, -1, step=-1, device=x.device) # kernel_size
+
+    # Tensor method
+    taps = torch.arange(1, 11, device=x.device, dtype=x.dtype)[..., None, None, None] # n_taps x 1 x 1 x 1
+    delays = taps * l[None, ..., None] # n_taps x out_channels x in_channels x 1
+    gains = a[None, ..., None] ** taps # n_taps x out_channels x in_channels x 1
+    time = t[None, None, None] # 1 x 1 x 1 x kernel_size
+    shifted_time = time - delays # n_taps x out_channels x in_channels x kernel_size
+    f = (gains * torch.sinc(shifted_time)).sum(0) # out_channels x in_channels x kernel_size
+
+    # Loop method
+    # f = torch.zeros((f0.shape[0], f0.shape[1], sr//10), device=x.device) # out_channels x in_channels x kernel_size
+    # for i in range(1, 11):
+    #     delay = (i * l)[..., None] # out_channels x in_channels x 1
+    #     gain = (a ** i)[..., None] # out_channels x in_channels x 1
+    #     time = t[None, None] # 1 x 1 x kernel_size
+    #     shifted_time = time - delay # out_channels x in_channels x kernel_size
+    #     f += gain * torch.sinc(shifted_time)
+
+    f[..., -1] = 1. # original signal (x[i])
+
+    # Enforce sparsity
+    f[abs(f)<1e-2] = 0.
+
+    x = torch.nn.functional.pad(x, (sr//10-1, 0))
+
+    y = torch.nn.functional.conv1d(
+        x, # batch x in_channels x time
+        f, # out_channels x in_channels x kernel_size
+    ) # batch x out_channels x time
+
+    return y
+
 def single_fractional_comb_modulo(x, f0, a, sr):
     x = x.squeeze()
     l = sr/f0
