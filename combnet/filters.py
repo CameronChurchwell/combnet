@@ -227,11 +227,11 @@ def fractional_comb_fir_multitap_sparse(x, f0, a, sr):
 
     # TODO make it work with more than 1 input channel
     assert f0.shape[1] == 1
-    
+
     l = sr/f0 # out_channels x in_channels
     t = torch.arange(sr//10-1, -1, step=-1, device=x.device) # kernel_size
 
-    # Tensor method
+    # Construct the filters
     n_taps = 10
     taps = torch.arange(1, n_taps+1, device=x.device, dtype=x.dtype)[..., None, None, None] # n_taps x 1 x 1 x 1
     delays = taps * l[None, ..., None] # n_taps x out_channels x in_channels x 1
@@ -247,37 +247,26 @@ def fractional_comb_fir_multitap_sparse(x, f0, a, sr):
         centers = centers[:, 3].reshape(f0.shape[0], f0.shape[1], n_taps) # out_channels x in_channels x n_taps
     except:
         import pdb; pdb.set_trace()
-    
-    
+
     if sinced.isnan().any():
         import pdb; pdb.set_trace()
     f = (gains * sinced).sum(0) # out_channels x in_channels x kernel_size
-    
-    # f[..., -1] = 1. # original signal (x[i])
-    
-    # Enforce sparsity
-    # f[abs(f)<5e-3] = 0.
-    # f[abs(f)<abs(f).median()] = 0. # only keep greater than median
-    # f[abs(f)>abs(f).median()] = 0. # only keep less than median
-
-    # for shape debugging
-    # x = x.repeat(4, 3, 1)
-    # f = f.repeat(1, 3, 1)
+    # f[..., -1] = 1. # original signal (x[i]) # not needed if we just sum the original signal in later
 
     x_unpadded = x
-    
+
     x = torch.nn.functional.pad(x, (sr//10-1, 0))
 
     offsets = delays.squeeze().round()
 
     # This is really stupid and there has to be a better way to compute these kernels, but we'll do that later
-    
+
     num_nonzero = (abs(f)>0).sum(2).unique().item()
 
     kernel_block_size = num_nonzero//n_taps
 
     block_radius = kernel_block_size // 2
-    
+
     f_condensed = f[abs(f)>0].reshape(
         f.shape[0], f.shape[1], n_taps, kernel_block_size) # out_channels x in_channels x n_taps x kernel_block_size
     f_condensed = f_condensed.flip(2) # What? Why? Well, the above line puts the blocks in reverse order to tap index
@@ -297,28 +286,39 @@ def fractional_comb_fir_multitap_sparse(x, f0, a, sr):
     # TODO figure out input_channels...
     assert centers.shape[1] == 1
     centers = centers[:, 0] # output_channels x n_taps
+    offsets = centers - block_radius # output_channels x n_taps
 
+    # Now we just have to grab the correct slices and sum them together
+
+    # First attempt: Create index tensor and use gather
+    # Uses a lot of vram (for the index tensor) and is very slow. The actual gather operation is fast though
     # indices = torch.arange(0, output_length)[None, None, :].to(x.device) #1 x 1 x time
     # indices = indices + centers[:, :, None] - block_radius # output_channels x n_taps x time
     # indices = indices[None].expand(y.shape[0], -1, -1, -1) # batch x output_channels x n_taps x time
     # y = torch.gather(y, 3, indices) # batch x output_channels x n_taps x time'
+    # y = y.sum(2)
 
-    
-    offsets = centers - block_radius # output_channels x n_taps
+    # Second attempt: Use unfolding and advanced indexing.
+    # Backward pass tries to use like 1TB of vram, probably because of unfold? Or the indexing?
     # unfolded = y.unfold(3, output_length, 1) # batch x output_channels x n_taps x offsets x time'
     # channels_indices = torch.arange(0, unfolded.shape[1])[:, None].expand(unfolded.shape[1], n_taps) # output_channels x n_taps
     # taps_indices = torch.arange(0, n_taps)[None].expand(unfolded.shape[1], n_taps) # output_channels x n_taps
-    # # import pdb; pdb.set_trace()
     # y = unfolded[:, channels_indices, taps_indices, offsets] # batch x output_channels x n_taps x time'
-    
-    # sum the taps
     # y = y.sum(2)
 
+    # Third attempt: Just use 2 Python loops (dumb)
+    # Works and is faster than the non-sparse version, but still slow
     output = torch.zeros(y.shape[0], y.shape[1], output_length, device=x.device) # batch x output_channels x time'
+    # for c in range(y.shape[1]):
+    #     for t in range(y.shape[2]):
+    #         output[:, c, :] += y[:, c, t, offsets[c, t]:offsets[c, t]+output_length]
+    # y = output
     
-    for c in range(y.shape[1]):
-        for t in range(y.shape[2]):
-            output[:, c, :] += y[:, c, t, offsets[c, t]:offsets[c, t]+output_length]
+    # Fourth attempt: Just use 1 Python loop (still dumb)
+    # works but is still slow and dumb 
+    output = torch.zeros(y.shape[0], y.shape[1], output_length, device=x.device) # batch x output_channels x time'
+    for t in range(y.shape[2]):
+        output[:, :, :] += y[:, :, t, offsets[:, t]:offsets[:, t]+output_length]
     y = output
 
     # sum in the original signal
