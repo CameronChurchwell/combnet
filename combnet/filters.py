@@ -280,11 +280,8 @@ def fractional_comb_fir_multitap_sparse(x, f0, a, sr):
     
     f_condensed = f[abs(f)>0].reshape(
         f.shape[0], f.shape[1], n_taps, kernel_block_size) # out_channels x in_channels x n_taps x kernel_block_size
-
     f_condensed = f_condensed.flip(2) # What? Why? Well, the above line puts the blocks in reverse order to tap index
-
     f_condensed = f_condensed.permute(0, 2, 1, 3) # out_channels x n_taps x in_channels x kernel_block_size
-
     f_condensed = f_condensed.flatten(0, 1) # out_channels*n_taps x in_channels x kernel_block_size
     
     y = torch.nn.functional.conv1d(
@@ -301,15 +298,28 @@ def fractional_comb_fir_multitap_sparse(x, f0, a, sr):
     assert centers.shape[1] == 1
     centers = centers[:, 0] # output_channels x n_taps
 
-    indices = torch.arange(0, output_length)[None, None, :].to(x.device) #1 x 1 x time
-    indices = indices + centers[:, :, None] - block_radius # output_channels x n_taps x time
+    # indices = torch.arange(0, output_length)[None, None, :].to(x.device) #1 x 1 x time
+    # indices = indices + centers[:, :, None] - block_radius # output_channels x n_taps x time
+    # indices = indices[None].expand(y.shape[0], -1, -1, -1) # batch x output_channels x n_taps x time
+    # y = torch.gather(y, 3, indices) # batch x output_channels x n_taps x time'
 
-    indices = indices[None].expand(y.shape[0], -1, -1, -1) # batch x output_channels x n_taps x time
-
-    y = torch.gather(y, 3, indices) # batch x output_channels x n_taps x time'
-
+    
+    offsets = centers - block_radius # output_channels x n_taps
+    # unfolded = y.unfold(3, output_length, 1) # batch x output_channels x n_taps x offsets x time'
+    # channels_indices = torch.arange(0, unfolded.shape[1])[:, None].expand(unfolded.shape[1], n_taps) # output_channels x n_taps
+    # taps_indices = torch.arange(0, n_taps)[None].expand(unfolded.shape[1], n_taps) # output_channels x n_taps
+    # # import pdb; pdb.set_trace()
+    # y = unfolded[:, channels_indices, taps_indices, offsets] # batch x output_channels x n_taps x time'
+    
     # sum the taps
-    y = y.sum(2)
+    # y = y.sum(2)
+
+    output = torch.zeros(y.shape[0], y.shape[1], output_length, device=x.device) # batch x output_channels x time'
+    
+    for c in range(y.shape[1]):
+        for t in range(y.shape[2]):
+            output[:, c, :] += y[:, c, t, offsets[c, t]:offsets[c, t]+output_length]
+    y = output
 
     # sum in the original signal
     # y += x[..., -y.shape[-1]:]
