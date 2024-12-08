@@ -1,5 +1,26 @@
 import torch
 
+# sinc = torch.sinc
+def sinc(x):
+    return torch.where(x==0., 1., torch.sin(x)/x)
+
+def sinc_safe(x):
+    x = torch.where(x==0., 1e-9, x)
+    return torch.sin(x)/x
+
+def sparse_sinc(x):
+    sinced = sinc_safe(x)
+    if sinced.isnan().any():
+        import pdb; pdb.set_trace()
+    outputs = torch.where(
+        (-4.5<x) & (x<=4.5),
+        sinced,
+        0.
+    )
+    if outputs.isnan().any():
+        import pdb; pdb.set_trace()
+    return outputs
+
 # Simplify calling a convolution
 def convolve( x, y):
     from torch.nn.functional import conv1d
@@ -111,7 +132,58 @@ def fractional_comb_fir_multitap(x, f0, a, sr):
     gains = a[None, ..., None] ** taps # n_taps x out_channels x in_channels x 1
     time = t[None, None, None] # 1 x 1 x 1 x kernel_size
     shifted_time = time - delays # n_taps x out_channels x in_channels x kernel_size
-    f = (gains * torch.sinc(shifted_time)).sum(0) # out_channels x in_channels x kernel_size
+    f = (gains * sinc(shifted_time)).sum(0) # out_channels x in_channels x kernel_size
+
+    # Loop method
+    # f = torch.zeros((f0.shape[0], f0.shape[1], sr//10), device=x.device) # out_channels x in_channels x kernel_size
+    # for i in range(1, 11):
+    #     delay = (i * l)[..., None] # out_channels x in_channels x 1
+    #     gain = (a ** i)[..., None] # out_channels x in_channels x 1
+    #     time = t[None, None] # 1 x 1 x kernel_size
+    #     shifted_time = time - delay # out_channels x in_channels x kernel_size
+    #     f += gain * torch.sinc(shifted_time)
+
+    f[..., -1] = 1. # original signal (x[i])
+
+    x = torch.nn.functional.pad(x, (sr//10-1, 0))
+
+    y = torch.nn.functional.conv1d(
+        x, # batch x in_channels x time
+        f, # out_channels x in_channels x kernel_size
+    ) # batch x out_channels x time
+
+    return y
+
+def fractional_comb_fir_multitap_pseudo_sparse(x, f0, a, sr):
+    if x.dim() == 1: # time
+        x = x[None, None]
+    elif x.dim() == 2: # channels x time
+        x = x[None]
+
+    assert x.dim() == 3 # batch x channels x time
+
+    if not isinstance(f0, torch.Tensor):
+        f0 = torch.tensor([[f0]], device=x.device, dtype=x.dtype)
+    if f0.dim() == 0:
+        f0 = f0[None, None]
+    if not isinstance(a, torch.Tensor):
+        a = torch.tensor([[a]], device=x.device, dtype=x.dtype)
+    if a.dim() == 0:
+        a = a[None, None]
+
+    assert f0.dim() == 2 # out_channels x in_channels
+    assert a.dim() == 2 # out_channels x in_channels
+
+    l = sr/f0 # out_channels x in_channels
+    t = torch.arange(sr//10-1, -1, step=-1, device=x.device) # kernel_size
+
+    # Tensor method
+    taps = torch.arange(1, 11, device=x.device, dtype=x.dtype)[..., None, None, None] # n_taps x 1 x 1 x 1
+    delays = taps * l[None, ..., None] # n_taps x out_channels x in_channels x 1
+    gains = a[None, ..., None] ** taps # n_taps x out_channels x in_channels x 1
+    time = t[None, None, None] # 1 x 1 x 1 x kernel_size
+    shifted_time = time - delays # n_taps x out_channels x in_channels x kernel_size
+    f = (gains * sparse_sinc(shifted_time)).sum(0) # out_channels x in_channels x kernel_size
 
     # Loop method
     # f = torch.zeros((f0.shape[0], f0.shape[1], sr//10), device=x.device) # out_channels x in_channels x kernel_size
@@ -153,37 +225,95 @@ def fractional_comb_fir_multitap_sparse(x, f0, a, sr):
     assert f0.dim() == 2 # out_channels x in_channels
     assert a.dim() == 2 # out_channels x in_channels
 
+    # TODO make it work with more than 1 input channel
+    assert f0.shape[1] == 1
+    
     l = sr/f0 # out_channels x in_channels
     t = torch.arange(sr//10-1, -1, step=-1, device=x.device) # kernel_size
 
     # Tensor method
-    taps = torch.arange(1, 11, device=x.device, dtype=x.dtype)[..., None, None, None] # n_taps x 1 x 1 x 1
+    n_taps = 10
+    taps = torch.arange(1, n_taps+1, device=x.device, dtype=x.dtype)[..., None, None, None] # n_taps x 1 x 1 x 1
     delays = taps * l[None, ..., None] # n_taps x out_channels x in_channels x 1
     gains = a[None, ..., None] ** taps # n_taps x out_channels x in_channels x 1
     time = t[None, None, None] # 1 x 1 x 1 x kernel_size
     shifted_time = time - delays # n_taps x out_channels x in_channels x kernel_size
-    f = (gains * torch.sinc(shifted_time)).sum(0) # out_channels x in_channels x kernel_size
+    sinced = sparse_sinc(shifted_time)
 
-    # Loop method
-    # f = torch.zeros((f0.shape[0], f0.shape[1], sr//10), device=x.device) # out_channels x in_channels x kernel_size
-    # for i in range(1, 11):
-    #     delay = (i * l)[..., None] # out_channels x in_channels x 1
-    #     gain = (a ** i)[..., None] # out_channels x in_channels x 1
-    #     time = t[None, None] # 1 x 1 x kernel_size
-    #     shifted_time = time - delay # out_channels x in_channels x kernel_size
-    #     f += gain * torch.sinc(shifted_time)
+    # out_channels*in_channels*n_taps x 4
+    centers = (shifted_time.permute(1, 2, 0, 3).ceil()==0).argwhere()
 
-    f[..., -1] = 1. # original signal (x[i])
-
+    try:
+        centers = centers[:, 3].reshape(f0.shape[0], f0.shape[1], n_taps) # out_channels x in_channels x n_taps
+    except:
+        import pdb; pdb.set_trace()
+    
+    
+    if sinced.isnan().any():
+        import pdb; pdb.set_trace()
+    f = (gains * sinced).sum(0) # out_channels x in_channels x kernel_size
+    
+    # f[..., -1] = 1. # original signal (x[i])
+    
     # Enforce sparsity
-    f[abs(f)<1e-2] = 0.
+    # f[abs(f)<5e-3] = 0.
+    # f[abs(f)<abs(f).median()] = 0. # only keep greater than median
+    # f[abs(f)>abs(f).median()] = 0. # only keep less than median
 
+    # for shape debugging
+    # x = x.repeat(4, 3, 1)
+    # f = f.repeat(1, 3, 1)
+
+    x_unpadded = x
+    
     x = torch.nn.functional.pad(x, (sr//10-1, 0))
 
+    offsets = delays.squeeze().round()
+
+    # This is really stupid and there has to be a better way to compute these kernels, but we'll do that later
+    
+    num_nonzero = (abs(f)>0).sum(2).unique().item()
+
+    kernel_block_size = num_nonzero//n_taps
+
+    block_radius = kernel_block_size // 2
+    
+    f_condensed = f[abs(f)>0].reshape(
+        f.shape[0], f.shape[1], n_taps, kernel_block_size) # out_channels x in_channels x n_taps x kernel_block_size
+
+    f_condensed = f_condensed.flip(2) # What? Why? Well, the above line puts the blocks in reverse order to tap index
+
+    f_condensed = f_condensed.permute(0, 2, 1, 3) # out_channels x n_taps x in_channels x kernel_block_size
+
+    f_condensed = f_condensed.flatten(0, 1) # out_channels*n_taps x in_channels x kernel_block_size
+    
     y = torch.nn.functional.conv1d(
         x, # batch x in_channels x time
-        f, # out_channels x in_channels x kernel_size
-    ) # batch x out_channels x time
+        f_condensed, # out_channels*n_taps x in_channels x kernel_block_size
+    ) # batch x out_channels*n_taps x time
+    
+    y = y.unflatten(1, (-1, n_taps)) # batch x out_channels x n_taps x time
+
+    assert (num_nonzero//n_taps) % 2 == 1 # TODO relax this constraint
+    output_length = x.shape[-1] - f.shape[-1] + 1
+
+    # TODO figure out input_channels...
+    assert centers.shape[1] == 1
+    centers = centers[:, 0] # output_channels x n_taps
+
+    indices = torch.arange(0, output_length)[None, None, :].to(x.device) #1 x 1 x time
+    indices = indices + centers[:, :, None] - block_radius # output_channels x n_taps x time
+
+    indices = indices[None].expand(y.shape[0], -1, -1, -1) # batch x output_channels x n_taps x time
+
+    y = torch.gather(y, 3, indices) # batch x output_channels x n_taps x time'
+
+    # sum the taps
+    y = y.sum(2)
+
+    # sum in the original signal
+    # y += x[..., -y.shape[-1]:]
+    y += x_unpadded
 
     return y
 
