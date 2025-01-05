@@ -1,6 +1,6 @@
 import torch
 from combnet.functional import lc_batch_comb
-from combnet.filters import fractional_anticomb_interference_fiir, fractional_comb_fiir, fractional_comb_fir_multitap
+from combnet.filters import *
 
 # Wrap between K and N
 def wrap(x, K, N):
@@ -12,8 +12,13 @@ dr = torch.logspace( 0, -2, 1024) # Decay for high frequencies to allow harmonic
 
 class Comb1d(torch.nn.Module):
     def __init__(self, in_channels, out_channels, alpha=.6, gain=None,
-        use_bias = False, learn_alpha=False, groups=1, learn_gain=False, sr=16000):
+        use_bias = False, learn_alpha=False, groups=1, learn_gain=False, sr=16000, comb_fn=None):
         super().__init__()
+
+        if comb_fn is None:
+            self.comb_fn = combnet.filters.fractional_comb_fir_multitap_lerp_explicit
+        else:
+            self.comb_fn = comb_fn
 
         self.sr = sr
 
@@ -61,7 +66,10 @@ class Comb1d(torch.nn.Module):
     def __call__( self, x):
         d = x.device
         # return lc_batch_comb( x, self.f.to(d), self.a.to(d), self.sr, self.g.to(d)) + self.b.to(d)
-        return fractional_comb_fir_multitap(x, self.f.to(d), self.a.to(d), self.sr) + self.b.to(d)
+        # return fractional_comb_fir_multitap(x, self.f.to(d), self.a.to(d), self.sr) + self.b.to(d)
+        # return fractional_comb_fir_multitap_lerp(x, self.f.to(d), self.a.to(d), self.sr) + self.b.to(d)
+        # return fractional_comb_fir_multitap_lerp_explicit(x, self.f.to(d), self.a.to(d), self.sr) + self.b.to(d)
+        return self.comb_fn(x, self.f.to(d), self.a.to(d), self.sr) + self.b.to(d)
         # return fractional_comb_fiir( x, self.f.to(d), self.a.to(d), self.sr) + self.b.to(d)
 
 

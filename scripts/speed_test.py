@@ -5,7 +5,7 @@ import torchaudio
 import argparse
 from tqdm import trange
 
-def speedtest(implementation, gpu=None, inference=False, backward=False):
+def speedtest(implementation, gpu=None, inference=False, backward=False, big=False):
     if inference and backward:
         raise ValueError('Cannot have both inference=True and backward=True')
 
@@ -19,13 +19,18 @@ def speedtest(implementation, gpu=None, inference=False, backward=False):
 
     audio = audio.to(device)
 
+    if big:
+        audio = audio[None].repeat(4, 2, 1)
+        f0 = torch.tensor([[151.1, 350.7]]).to(device)
+        a = torch.tensor(0.8).to(device)
+    else:
+        f0 = torch.tensor(151.1).to(device)
+        a = torch.tensor(0.8).to(device)
+    sr = torch.tensor(sr).to(device)
+
     print(audio.shape, sr)
 
     comb_fn = getattr(combnet.filters, implementation)
-
-    f0 = torch.tensor(151.1).to(device)
-    a = torch.tensor(0.8).to(device)
-    sr = torch.tensor(sr).to(device)
 
     f0.requires_grad_()
 
@@ -52,7 +57,7 @@ def speedtest(implementation, gpu=None, inference=False, backward=False):
 
     print(f"seconds elapsed: {seconds}")
     if gpu is not None:
-        print(f"max memory allocated: {torch.cuda.max_memory_allocated(device) / 1024 / 1024 / 1024:0.3f} GB")
+        print(f"max memory allocated: {torch.cuda.max_memory_allocated(device) / 1024 / 1024 / 1024:0.6f} GB")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -77,5 +82,10 @@ if __name__ == '__main__':
         '--backward',
         action='store_true',
         help='Compute backwards pass as well'
+    )
+    parser.add_argument(
+        '--big',
+        action='store_true',
+        help='Use a larger number of channels and batch size'
     )
     speedtest(**vars(parser.parse_args()))
