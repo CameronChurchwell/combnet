@@ -349,7 +349,7 @@ def _lerp_backward_kernel(
     l, # out_channels x in_channels
     a, # out_channels x in_channels
     gradient, # batch x out_channels x in_channels x time
-    output_gradient, # batch x out_channels x time
+    # output_gradient, # batch x out_channels x time
     batch_size: int,
     n_taps: int,
     out_channels: int,
@@ -372,6 +372,8 @@ def _lerp_backward_kernel(
     batch_indices = tl.arange(0, block_batch)[:, None, None, None] + n_id * block_batch # block_batch x 1 x 1 x 1
 
     out_channel_indices = tl.arange(0, block_out_channels)[None, :, None, None] + o_id * block_out_channels # 1 x block_out_channels x 1 x 1
+    # if t_id == 0:
+    #     tl.device_print('out_channel_indices', out_channel_indices)
     for ic_counter in range(0, in_channels, block_in_channels):
         in_channel_indices = tl.arange(0, block_in_channels)[None, None, :, None] + ic_counter * block_in_channels # 1 x 1 x block_in_channels x 1
         channel_indices = out_channel_indices * in_channels + in_channel_indices # 1 x block_out_channels x block_in_channels x 1
@@ -424,7 +426,11 @@ def _lerp_backward_kernel(
         # g_mask = (out_channel_indices < out_channels) & (in_channel_indices < in_channels)
         # tl.atomic_add(gradient+g_indices, partial_gradient, g_mask)
 
-        g_indices = indices + in_channel_indices * in_channels + out_channel_indices * out_channels + batch_indices * out_channels * in_channels
+        # g_indices = indices + in_channel_indices * in_channels + out_channel_indices * out_channels + batch_indices * out_channels * in_channels
+        # g_indices = indices + in_channel_indices * in_channels + batch_indices * out_channels * in_channels
+        g_indices = indices + in_channel_indices * time + out_channel_indices * in_channels * time + batch_indices * out_channels * in_channels * time
+        # if t_id == 0:
+        #     tl.device_print('g_indices', g_indices)
         g_mask = (indices < time) & (in_channel_indices < in_channels) & (out_channel_indices < out_channels) & (batch_indices < batch_size)
         tl.atomic_add(gradient+g_indices, accumulator, g_mask)
 
@@ -506,7 +512,7 @@ class _explicit_lerp_triton(torch.autograd.Function):
             l=l, # out_channels x in_channels
             a=a, # out_channels x in_channels
             gradient=dy_dl, # batch x out_channels x time
-            output_gradient=output_gradient.contiguous(),
+            # output_gradient=output_gradient.contiguous(),
             batch_size=x.shape[0],
             n_taps=n_taps,
             out_channels=l.shape[0],
@@ -535,7 +541,7 @@ def fractional_comb_fir_multitap_lerp_explicit_triton(x, f0, a, sr):
         a = torch.tensor([[a]], device=x.device, dtype=x.dtype)
     if a.dim() == 0:
         a = a[None, None]
-    a = a.expand(f0.shape)
+    a = a.expand(f0.shape).contiguous()
 
     assert f0.dim() == 2 # out_channels x in_channels
     assert a.dim() == 2 # out_channels x in_channels
