@@ -16,7 +16,8 @@ class Comb1d(torch.nn.Module):
         super().__init__()
 
         if comb_fn is None:
-            self.comb_fn = combnet.filters.fractional_comb_fir_multitap_lerp_explicit
+            self.comb_fn = combnet.filters.fractional_comb_fir_multitap_lerp_explicit_triton
+            # self.comb_fn = combnet.filters.fractional_comb_fir_multitap_lerp_explicit
         else:
             self.comb_fn = comb_fn
 
