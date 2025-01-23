@@ -34,6 +34,19 @@ def speedtest(implementation, gpu=None, inference=False, backward=False, big=Fal
 
     f0.requires_grad_()
 
+    # warmup
+    if inference:
+        with torch.no_grad():
+            _ = comb_fn(audio, f0, a, sr)
+    elif backward:
+        out = comb_fn(audio, f0, a, sr)
+        pseudo_loss = out.sum()
+        if f0.grad is not None:
+            f0.grad.zero_()
+        pseudo_loss.backward()
+    else:
+        _ = comb_fn(audio, f0, a, sr)
+
     torch.cuda.synchronize()
     start = time.time()
     max_iters = 1000
