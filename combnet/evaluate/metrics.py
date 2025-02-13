@@ -52,7 +52,7 @@ class Metrics():
 class Loss(torchutil.metrics.Average):
     """Batch-updating loss"""
     def update(self, predicted, target):
-        super().update(combnet.loss(predicted, target), target.numel())
+        super().update(combnet.loss(predicted, target).detach(), target.numel())
 
 
 class CategoricalAccuracy:

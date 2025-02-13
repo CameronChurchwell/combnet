@@ -222,6 +222,7 @@ class ConvClassifier(torch.nn.Module):
         features = self.filters @ spectrogram
         features = torch.log(1+features)
         # features = torch.log10(1+features)
+        features /= abs(features).max()
         return features
 
     def forward(self, spectrogram):

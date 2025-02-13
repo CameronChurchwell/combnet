@@ -33,4 +33,4 @@ OPTIMIZER_FACTORY = torch.optim.SGD
 # OPTIMIZER_FACTORY = partial(torch.optim.SGD, lr=0.0005, momentum=0.9, weight_decay=1e-4)
 
 
-MODEL_KWARGS = {'n_filters': 12}
+MODEL_KWARGS = {'n_filters': 32}

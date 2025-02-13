@@ -229,6 +229,8 @@ def evaluate(
 
     device = f'cuda:{gpu}' if gpu is not None else 'cpu'
 
+    model.eval()
+
     with torch.no_grad():
         # Setup evaluation metrics
         metrics = combnet.evaluate.Metrics()
@@ -258,6 +260,7 @@ def evaluate(
 
         # Write to tensorboard
         torchutil.tensorboard.update(directory, step, scalars=scalars)
+    model.train()
 
 
 ###############################################################################

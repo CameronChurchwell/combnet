@@ -20,8 +20,13 @@ def speedtest(implementation, gpu=None, inference=False, backward=False, big=Fal
     audio = audio.to(device)
 
     if big:
-        audio = audio[None].repeat(4, 2, 1)
-        f0 = torch.tensor([[151.1, 350.7]]).to(device)
+        # audio = audio[None].repeat(4, 2, 1)
+        # f0 = torch.tensor([[151.1, 350.7]]).to(device)
+        # a = torch.tensor(0.8).to(device)
+        audio = audio[None].repeat(4, 1, 1)
+        # n_filters = 50
+        n_filters = 24
+        f0 = torch.linspace(65, 2100, n_filters).to(device)[:, None]
         a = torch.tensor(0.8).to(device)
     else:
         f0 = torch.tensor(151.1).to(device)
