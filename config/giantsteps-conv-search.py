@@ -38,9 +38,9 @@ if hasattr(combnet, 'defaults'):
 
     NUM_CLASSES = len(GIANTSTEPS_KEYS)
 
-    MODEL_MODULE = 'classifiers'
+    MODEL_MODULE = 'key_classifiers'
 
-    MODEL_CLASS = 'ConvClassifier'
+    MODEL_CLASS = 'STFTClassifier'
 
     STEPS = 100_000
 

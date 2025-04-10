@@ -8,7 +8,7 @@ def parse_args():
     parser = yapecs.ArgumentParser(description='Partition datasets')
     parser.add_argument(
         '--datasets',
-        default=combnet.DATASETS,
+        default=combnet.ALL_DATASETS,
         nargs='+',
         help='The datasets to partition')
     parser.add_argument(

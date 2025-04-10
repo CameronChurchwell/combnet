@@ -18,19 +18,21 @@ def madmom_filters(bands_per_octave=24):
 def madgram(audio, norm=True):
     filters = madmom_filters()
     filters_tensor = torch.tensor(filters).T
+    # plt.pcolormesh(filters_tensor[:, :200], norm=colors.PowerNorm(0.2)); plt.show()
     with torch.no_grad():
         output = combnet.data.preprocess.spectrogram.from_audio(
             audio=audio,
             sample_rate=combnet.SAMPLE_RATE
         ).cpu().squeeze()
         output = filters_tensor @ output
+    output = output[:68]
     output = torch.log(1+output)
     output = output/abs(output).max()
     plt.pcolormesh(
         np.linspace(0, audio.shape[-1] / combnet.SAMPLE_RATE, output.shape[1]),
-        filters.center_frequencies,
+        filters.center_frequencies[:68],
         output,
-        norm=colors.PowerNorm(0.2) if norm else None
+        norm=colors.PowerNorm(0.4) if norm else None
     )
     plt.title('MadGram')
     plt.ylabel('Frequencies (Hz)')

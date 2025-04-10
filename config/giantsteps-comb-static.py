@@ -25,7 +25,7 @@ CLASS_MAP = {k: i for i, k in enumerate(GIANTSTEPS_KEYS)}
 
 NUM_CLASSES = len(GIANTSTEPS_KEYS)
 
-MODEL_MODULE = 'classifiers'
+MODEL_MODULE = 'key_classifiers'
 
 MODEL_CLASS = 'CombClassifier'
 
@@ -44,4 +44,4 @@ OPTIMIZER_FACTORY = torch.optim.SGD
 # OPTIMIZER_FACTORY = partial(torch.optim.SGD, lr=0.0005, momentum=0.9, weight_decay=1e-4)
 
 
-MODEL_KWARGS = {'n_filters': 'madmom'}
+MODEL_KWARGS = {'n_filters': 'madmom-trunc'}

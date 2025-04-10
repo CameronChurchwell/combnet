@@ -17,7 +17,11 @@ def main(config, dataset, gpu=None):
     directory.mkdir(parents=True, exist_ok=True)
 
     # Save configuration
-    shutil.copyfile(config, directory / config.name)
+    try:
+        shutil.copyfile(config, directory / config.name)
+    except shutil.SameFileError:
+        import warnings
+        warnings.warn('Skipping config copy, config in run dir is being used directly!')
 
     # Train
     combnet.train(dataset, directory, gpu=gpu)

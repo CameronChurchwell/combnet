@@ -1,1 +1,2 @@
-from . import classifiers
+from . import key_classifiers
+from . import chord_classifiers

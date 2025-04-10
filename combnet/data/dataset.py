@@ -14,6 +14,10 @@ import combnet
 # Dataset
 ###############################################################################
 
+beadgcf = ["B", "E", "A", "D", "G", "C", "F"]
+beadgcf_ext = beadgcf[:]
+for note in beadgcf:
+    beadgcf_ext.append(note +"b")
 
 class Dataset(torch.utils.data.Dataset):
 
@@ -73,9 +77,49 @@ class Dataset(torch.utils.data.Dataset):
                 with open(file, 'r') as f:
                     feature_values.append(f.read())
 
+            elif feature == 'chord_file':
+                file = self.metadata.data_dir / (self.stems[index] + '.chord')
+                feature_values.append(file)
+
+            elif feature == 'chord':
+                file = self.metadata.data_dir / (self.stems[index] + '.chord')
+                with open(file, 'r') as f:
+                    feature_values.append(f.read())
+
+            elif feature == 'quality_file':
+                file = self.metadata.data_dir / (self.stems[index] + '.quality')
+                feature_values.append(file)
+
+            elif feature == 'quality':
+                file = self.metadata.data_dir / (self.stems[index] + '.quality')
+                with open(file, 'r') as f:
+                    feature_values.append(f.read())
+
+            elif feature == 'notes_file':
+                file = self.metadata.data_dir / (self.stems[index] + '.notes.json')
+                feature_values.append(file)
+
+            elif feature == 'notes':
+                file = self.metadata.data_dir / (self.stems[index] + '.notes.json')
+                with open(file, 'r') as f:
+                    feature_values.append(json.load(f))
+
+            elif feature == 'notes_vector':
+                file = self.metadata.data_dir / (self.stems[index] + '.notes.json')
+                with open(file, 'r') as f:
+                    notes = json.load(f)
+                vec = torch.zeros(len(beadgcf_ext))
+                for note in notes:
+                    vec[beadgcf_ext.index(note)] = 1.
+                feature_values.append(vec)
+
             elif feature == 'class':
                 if self.metadata.name in ['giantsteps', 'giantsteps_mtg']:
                     file = self.metadata.data_dir / (self.stems[index] + '.key')
+                    with open(file, 'r') as f:
+                        feature_values.append(torch.tensor(combnet.CLASS_MAP[f.read()]))
+                elif self.metadata.name in ['chords']:
+                    file = self.metadata.data_dir / (self.stems[index] + '.chord')
                     with open(file, 'r') as f:
                         feature_values.append(torch.tensor(combnet.CLASS_MAP[f.read()]))
                 else:

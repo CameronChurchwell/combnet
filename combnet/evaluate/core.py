@@ -72,6 +72,11 @@ def datasets(
             overall[dataset] = dataset_metrics()
         overall['aggregate'] = aggregate_metrics()
 
+        n_params = 0
+        for p in model.parameters():
+            n_params += p.numel()
+        overall['meta'] = {'n_params': n_params}
+
         # Write to json files
         directory = combnet.EVAL_DIR / combnet.CONFIG
         directory.mkdir(exist_ok=True, parents=True)

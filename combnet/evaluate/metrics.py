@@ -14,34 +14,36 @@ class Metrics():
         self.loss = Loss()
         self.mirex_weighted = MIREX_Weighted()
         self.categorical = CategoricalAccuracy()
-        self.metrics = [
-            self.accuracy,
-            self.mirex_weighted,
-            self.loss,
-            self.categorical
-        ]
+        metrics = {
+            'accuracy': torchutil.metrics.Accuracy,
+            'loss': Loss,
+            'mirex_weighted': MIREX_Weighted,
+            'categorical':  CategoricalAccuracy,
+        }
+        self.metrics = {name:metrics[name]() for name in combnet.METRICS}
         self.reset()
 
     def __call__(self):
-        results = {
-            'loss': self.loss(),
-            'accuracy': self.accuracy(),
-            'mirex_weighted': self.mirex_weighted(),
-        }
-        results = results | self.categorical()
+        multi_metrics = ['categorical']
+        results = {name: metric() for name, metric in self.metrics.items() if name not in multi_metrics}
+        if 'categorical' in self.metrics:
+            results = results | self.metrics['categorical']()
         return results
 
     def reset(self):
-        for metric in self.metrics:
+        for metric in self.metrics.values():
             metric.reset()
 
     def update(
         self, predicted_logits, target_indices):
         predicted_indices = predicted_logits.argmax(1)
-        self.accuracy.update(predicted_indices, target_indices)
-        self.loss.update(predicted_logits, target_indices)
-        self.mirex_weighted.update(predicted_indices, target_indices)
-        self.categorical.update(predicted_logits, target_indices)
+        for name, metric in self.metrics.items():
+            if name in ['accuracy', 'mirex_weighted']:
+                metric.update(predicted_indices, target_indices)
+            elif name in ['loss', 'categorical']:
+                metric.update(predicted_logits, target_indices)
+            else:
+                raise ValueError(f'Unable to determine input for metric: {name}')
 
 
 ###############################################################################
@@ -59,7 +61,7 @@ class CategoricalAccuracy:
 
     def __init__(self):
         self.reset()
-        self.map = {i: key for i, key in enumerate(combnet.GIANTSTEPS_KEYS)}
+        self.map = {i: key for key, i in combnet.CLASS_MAP.items()}
 
     def __call__(self):
         if self.totals is not None:
@@ -129,8 +131,9 @@ class MIREX_Weighted(torchutil.metrics.Metric):
     """Batch-updating weighted MIREX accuracy"""
 
     def update(self, predicted_indices, target_indices):
-        predicted_keys = [combnet.GIANTSTEPS_KEYS[predicted_index] for predicted_index in predicted_indices]
-        target_keys = [combnet.GIANTSTEPS_KEYS[predicted_index] for predicted_index in target_indices]
+        inverse_map = {i:k for k, i in combnet.CLASS_MAP.items()}
+        predicted_keys = [inverse_map[predicted_index.item()] for predicted_index in predicted_indices]
+        target_keys = [inverse_map[predicted_index.item()] for predicted_index in target_indices]
         self.total += len(predicted_indices)
         for pred, target in zip(predicted_keys, target_keys):
             pred_tonic, pred_mode = pred.split()

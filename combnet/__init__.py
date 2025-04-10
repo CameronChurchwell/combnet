@@ -9,6 +9,7 @@ from .config import defaults
 # Modify configuration
 import yapecs
 yapecs.configure('combnet', defaults)
+del defaults
 
 # Import configuration parameters
 from .config.defaults import *
@@ -19,10 +20,12 @@ from .config.static import *
 # Module imports
 ###############################################################################
 
+penn = yapecs.compose('penn', [Path(__file__).parent / 'config' / 'penn.py'])
 
 from .core import *
 
 from .triton_conv1d import SparseConv1d
+from . import _C
 from . import filters
 from . import functional
 from . import modules

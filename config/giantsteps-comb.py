@@ -2,8 +2,9 @@ MODULE = 'combnet'
 
 CONFIG = 'giantsteps-comb'
 
-# SAMPLE_RATE = 44_100
-SAMPLE_RATE = 16_000
+SAMPLE_RATE = 44_100
+N_FFT = 8192
+# SAMPLE_RATE = 16_000
 
 HOPSIZE = (SAMPLE_RATE // 5)
 
@@ -15,22 +16,24 @@ CLASS_MAP = {k: i for i, k in enumerate(GIANTSTEPS_KEYS)}
 
 NUM_CLASSES = len(GIANTSTEPS_KEYS)
 
-MODEL_MODULE = 'classifiers'
+MODEL_MODULE = 'key_classifiers'
 
 MODEL_CLASS = 'CombClassifier'
 
 BATCH_SIZE = 8
 
 import torch
-from functools import partial
+# from functools import partial
 # OPTIMIZER_FACTORY = partial(torch.optim.SGD, lr=0.001, momentum=0.9)
 PARAM_GROUPS = {
-    'main': {'lr': 0.001, 'momentum': 0.9, 'weight_decay': 1e-4},
-    'f0': {'lr': 10000, 'momentum': 0.9}
+    # 'main': {'lr': 0.001, 'momentum': 0.9, 'weight_decay': 1e-4},
+    'main': {'lr': 0.01},
+    # 'f0': {'lr': 0.1, 'momentum': 0.75}
+    'f0': {'lr': 0.1, 'momentum': 0},
 }
 OPTIMIZER_FACTORY = torch.optim.SGD
-# OPTIMIZER_FACTORY = partial(torch.optim.AdamW, lr=0.000001, weight_decay=1e-4)
+# OPTIMIZER_FACTORY = partial(torch.optim.Adam, lr=0.000001, weight_decay=1e-4)
 # OPTIMIZER_FACTORY = partial(torch.optim.SGD, lr=0.0005, momentum=0.9, weight_decay=1e-4)
 
 
-MODEL_KWARGS = {'n_filters': 32}
+MODEL_KWARGS = {'n_filters': 24}

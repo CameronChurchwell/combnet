@@ -38,23 +38,94 @@ def convolve( x, y):
 
 # Take 1: Use an IIR comb filter, must use scan to avoid jit dealing with variable loop count
 # Works fine, but has a DC peak and is insanely slow
-def single_fractional_comb_iir( x, f0, a, sr):
+# torch._dynamo.config.capture_scalar_outputs=True
+# @torch.compile(fullgraph=True)
+def single_fractional_comb_iir(x, f0, a, sr=combnet.SAMPLE_RATE):
+    sr = 44100
+    if x.dim() > 1:
+        x = x.squeeze()
     # Make the filter, essentially a fractional (sinc) delay in the feedback path
-    l = sr/f0
-    t = torch.arange( sr//20) - l + 1 # Fixed the buffer size to a constant to avoid jit complaints, I assume we don't care for sub 20Hz
-    a = a * torch.sinc( t) * torch.exp( -.1 * t**2)
+    l = sr/0
+    t = torch.arange(sr//20, device=x.device) - l + torch.tensor(1, device=x.device) # Fixed the buffer size to a constant to avoid jit complaints, I assume we don't care for sub 20Hz
+    a = a * torch.sinc(t) * torch.exp(-.1 * t**2)
     # a = a.at[0].set( -.02)
 
     # Core scan routine utilizing a ring buffer
-    c = torch.zeros( len( a))
-    y = torch.zeros( len( x))
-    for i in torch.arange( len( x)):
-        y[i] = x[i] + a.dot( c)
-        c = torch.roll( c, shifts=1)
+    c = torch.zeros(len(a), device=x.device)
+    y = torch.zeros(len(x), device=x.device)
+    # for i in torch.arange(len(x), device=x.device):
+
+    for i in range(len(x)):
+        y[i] = x[i] + a.dot(c)
+        c = torch.roll(c, shifts=1)
         c[0] = y[i]
 
     # Do it
     return y
+
+# this is a proof of concept to show how bad RNNs are for this task...
+#  
+# rnn = torch.nn.RNN(1, 1, 1, batch_first=True, bias=False).to('cuda:0')
+# def single_fractional_comb_iir(x, f0, a, sr=combnet.SAMPLE_RATE):
+#     # rnn = rnn.to(x.device)
+#     # h0 = torch.zeros((1, 1, 1), device=x.device)
+#     # x = x[..., None]
+#     x = torch.randn(1, sr, 1, device=x.device)
+#     h0 = torch.randn(1, 1, 1, device=x.device)
+#     # breakpoint()
+#     return rnn(x, h0)
+
+
+# import torch
+# from torch.nn import Module, Parameter
+# from torch import FloatTensor
+
+# class DOnePoleCell(Module):
+#     def __init__(self, a1=0.5, b0=1.0, b1=0.0):
+#         super(DOnePoleCell, self).__init__()
+#         self.b0 = Parameter(FloatTensor([b0]))
+#         self.b1 = Parameter(FloatTensor([b1]))
+#         self.a1 = Parameter(FloatTensor([a1]))
+
+#     def init_states(self, size):
+#         state = torch.zeros(size).to(self.a1.device)
+#         return state
+
+#     # @torch.compile(fullgraph=True)
+#     def forward(self, input, state):
+#         self.a1.data = self.a1.clamp(-1, 1)
+#         output = self.b0 * input + state
+#         state = self.b1 * input + self.a1 * output
+#         return output, state
+
+# class DOnePole(Module):
+#     def __init__(self):
+#         super(DOnePole, self).__init__()
+#         self.cell = DOnePoleCell()
+
+#     # @torch.compile(dynamic=True)
+#     def forward(self, input, initial_states=None):
+#         batch_size = input.shape[0]
+#         sequence_length = input.shape[1]
+
+#         if initial_states is None:
+#             states = self.cell.init_states(batch_size)
+#         else:
+#             states = initial_states
+
+#         out_sequence = torch.zeros(input.shape[:-1]).to(input.device)
+#         for s_idx in range(sequence_length):
+#             out_sequence[:, s_idx], states = self.cell(input[:, s_idx].view(-1), states)
+#         out_sequence = out_sequence.unsqueeze(-1)
+
+#         if initial_states is None:
+#             return out_sequence
+#         else:
+#             return out_sequence, states
+
+# one_pole = DOnePole()#.to('cuda:0')
+# def single_fractional_comb_iir(x, f0, a, sr=combnet.SAMPLE_RATE):
+#     return one_pole(x[..., None])
 
 def single_comb_iir_faithful(x, f0, a, sr):
     if x.dim() == 2:
@@ -62,10 +133,25 @@ def single_comb_iir_faithful(x, f0, a, sr):
     assert x.dim() == 3
     f0 = float(f0)
     sr = int(sr)
-    l = int(round(sr/f0))
+    l = int(sr//f0)
     y = x.clone()
     for i in range(l, x.shape[-1]):
         y[..., i] += a*y[..., i-l]
+    return y
+
+import combnet._C
+def single_comb_iir_cpp(x, f0, a, sr):
+    if x.dim() == 2:
+        x = x.unsqueeze(0)
+    assert x.dim() == 3
+    a = float(a)
+    f0 = float(f0)
+    sr = int(sr)
+    # l = int(round(sr/f0))
+    y = x.clone()
+    # for i in range(l, x.shape[-1]):
+    #     y[..., i] += a*y[..., i-l]
+    torch.ops.combnet.single_comb_iir(f0, a, sr, y)
     return y
 
 def single_comb_fir(x, f0, a, sr):

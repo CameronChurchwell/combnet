@@ -9,6 +9,11 @@ import torchutil
 
 import combnet
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    import penn
+else:
+    from combnet import penn
 
 ###############################################################################
 # Preprocess
@@ -40,6 +45,10 @@ def datasets(
         features = combnet.FEATURES
 
     for dataset in datasets:
+
+        if dataset in ['ptdb', 'mdb']:
+            penn.data.preprocess.datasets([dataset])
+            continue
 
         try:
 

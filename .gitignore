@@ -22,3 +22,8 @@ build/
 dist/
 
 config/*.progress*
+
+*.so
+.gradio/
+
+runs*/

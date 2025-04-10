@@ -5,7 +5,7 @@ import torchaudio
 import argparse
 from tqdm import trange
 
-def speedtest(implementation, gpu=None, inference=False, backward=False, big=False):
+def speedtest(implementation, gpu=None, inference=False, backward=False, big=False, trunc=False):
     if inference and backward:
         raise ValueError('Cannot have both inference=True and backward=True')
 
@@ -16,6 +16,9 @@ def speedtest(implementation, gpu=None, inference=False, backward=False, big=Fal
     audio, sr = torchaudio.load(audio_path)
 
     audio = audio.mean(0, keepdim=True)
+
+    if trunc:
+        audio = audio[..., :int(sr*5)]
 
     audio = audio.to(device)
 
@@ -105,5 +108,10 @@ if __name__ == '__main__':
         '--big',
         action='store_true',
         help='Use a larger number of channels and batch size'
+    )
+    parser.add_argument(
+        '--trunc',
+        action='store_true',
+        help='Truncate the length of the input sequence to 5 seconds (for especially slow implementations)'
     )
     speedtest(**vars(parser.parse_args()))

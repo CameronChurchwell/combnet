@@ -42,6 +42,7 @@ def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
     ####################
 
     if combnet.PARAM_GROUPS is not None:
+        print(combnet.PARAM_GROUPS)
         assert hasattr(model, 'parameter_groups')
         groups = model.parameter_groups()
         assert set(groups.keys()) == set(combnet.PARAM_GROUPS.keys())
@@ -87,6 +88,12 @@ def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
     #########
     # Train #
     #########
+    # n_params = 0
+    # for p in model.parameters():
+    #     n_params += p.numel()
+    # torchutil.tensorboard.update(directory, step, hyperparameters={
+    #     'n_params': n_params
+    # })
 
     # Setup progress bar
     progress = torchutil.iterator(
@@ -122,6 +129,8 @@ def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
 
             # Backward pass
             losses.backward()
+
+            torch.nn.utils.clip_grad_norm_(model.parameters(), combnet.GRAD_CLIP_THRESHOLD, 'inf')
 
             # Update weights
             optimizer.step()

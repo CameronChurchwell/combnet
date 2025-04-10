@@ -17,13 +17,13 @@ def loader(
         features=features
     )
     collate = combnet.data.Collate(features=features)
-    test = 'test' in partition
+    test = 'test' in partition if partition is not None else False
     if test:
         batch_size = 1
     return torch.utils.data.DataLoader(
         dataset=dataset,
         batch_size=combnet.BATCH_SIZE if batch_size is None else batch_size,
-        shuffle='train' in partition or 'valid' in partition,
+        shuffle='train' in partition or 'valid' in partition if partition is not None else False,
         num_workers=combnet.NUM_WORKERS,
         pin_memory=(gpu is not None),
         collate_fn=collate)

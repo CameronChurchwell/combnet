@@ -18,9 +18,9 @@ NUM_CLASSES = len(GIANTSTEPS_KEYS)
 
 NUM_COMB_FILTERS = 24
 
-MODEL_MODULE = 'classifiers'
+MODEL_MODULE = 'key_classifiers'
 
-MODEL_CLASS = 'ConvClassifier'
+MODEL_CLASS = 'STFTClassifier'
 
 BATCH_SIZE = 16
 

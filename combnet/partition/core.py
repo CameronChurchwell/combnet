@@ -6,10 +6,20 @@ import re
 
 import combnet
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    import penn
+else:
+    from combnet import penn
 
 def datasets(datasets=combnet.DATASETS, exclude_pattern=None):
     """Partition datasets"""
     for dataset in datasets:
+
+        # Handle penn datasets
+        if dataset in ['ptdb', 'mdb']:
+            penn.partition.dataset(dataset)
+            continue
 
         # Random seed
         random.seed(combnet.RANDOM_SEED)
