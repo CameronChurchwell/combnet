@@ -179,6 +179,7 @@ class FusedComb1d(torch.nn.Module):
                 return self.comb_fn(x, self.f.to(d), self.a.to(d), self.sr, self.window_size, self.stride) + self.b.to(d)
         # return fractional_comb_fiir(x, self.f.to(d), self.a.to(d), self.sr) + self.b.to(d)
 
+Comb1dFIIR = partial(Comb1d, comb_fn=combnet.filters.fractional_comb_fiir)
 
 class CombInterference1d(torch.nn.Module):
 

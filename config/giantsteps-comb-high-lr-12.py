@@ -1,6 +1,6 @@
 MODULE = 'combnet'
 
-CONFIG = 'giantsteps-conv'
+CONFIG = 'giantsteps-comb-high-lr-12'
 
 SAMPLE_RATE = 44_100
 N_FFT = 8192
@@ -18,7 +18,7 @@ NUM_CLASSES = len(GIANTSTEPS_KEYS)
 
 MODEL_MODULE = 'key_classifiers'
 
-MODEL_CLASS = 'ConvClassifier'
+MODEL_CLASS = 'CombClassifier'
 
 BATCH_SIZE = 8
 
@@ -28,9 +28,12 @@ import torch
 PARAM_GROUPS = {
     # 'main': {'lr': 0.001, 'momentum': 0.9, 'weight_decay': 1e-4},
     'main': {'lr': 0.01},
+    # 'f0': {'lr': 0.1, 'momentum': 0.75}
+    'f0': {'lr': 0.5, 'momentum': 0.2},
 }
 OPTIMIZER_FACTORY = torch.optim.SGD
 # OPTIMIZER_FACTORY = partial(torch.optim.Adam, lr=0.000001, weight_decay=1e-4)
 # OPTIMIZER_FACTORY = partial(torch.optim.SGD, lr=0.0005, momentum=0.9, weight_decay=1e-4)
 
-MODEL_KWARGS = {'kernel_size': SAMPLE_RATE//5, 'n_channels': 8, 'stride': SAMPLE_RATE//5} # TODO try combnet.HOPSIZE?
+
+MODEL_KWARGS = {'n_filters': 12}

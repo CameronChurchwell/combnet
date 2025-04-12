@@ -77,12 +77,12 @@ CONFIG_DIR = ROOT_DIR / 'config'
 ASSETS_DIR = Path(__file__).parent.parent / 'assets'
 
 # Location of preprocessed features
-# CACHE_DIR = Path(__file__).parent.parent.parent / 'data' / 'cache'
-CACHE_DIR = Path('/mnt/data3/cameron/combnet') / 'cache'
+CACHE_DIR = Path(__file__).parent.parent.parent / 'data' / 'cache'
+CACHE_DIR = Path(os.getenv('COMBNET_CACHE_DIR', CACHE_DIR))
 
 # Location of datasets on disk
-# DATA_DIR = Path(__file__).parent.parent.parent / 'data' / 'datasets'
-DATA_DIR = Path('/mnt/data3/cameron/combnet') / 'datasets'
+DATA_DIR = Path(__file__).parent.parent.parent / 'data' / 'datasets'
+DATA_DIR = Path(os.getenv('COMBNET_DATA_DIR', DATA_DIR))
 
 # Location to save evaluation artifacts
 EVAL_DIR = Path(__file__).parent.parent.parent / 'eval'

@@ -92,9 +92,17 @@ class Unsqueeze(torch.nn.Module):
 
 
 class CombClassifier(torch.nn.Module):
-    def __init__(self, n_filters=12, fused_comb_fn='FusedComb1d'):
+    def __init__(self, n_filters=12, fused_comb_fn='FusedComb1d', comb_fn=None):
         super().__init__()
-        fused_comb_fn = getattr(combnet.modules, fused_comb_fn)
+        if comb_fn is None:
+            comb = getattr(combnet.modules, fused_comb_fn)(
+                1, n_filters, sr=combnet.SAMPLE_RATE, window_size=combnet.WINDOW_SIZE, stride=combnet.HOPSIZE
+            )
+        else:
+            assert fused_comb_fn is None
+            comb = getattr(combnet.modules, comb_fn)(
+                1, n_filters, sr=combnet.SAMPLE_RATE
+            )
         # centers = None
         # import numpy as np
         # centers = torch.tensor(LogarithmicFilterbank(
@@ -107,7 +115,7 @@ class CombClassifier(torch.nn.Module):
         n_classes = len(combnet.CLASS_MAP)
         print(n_filters)
         self.layers = torch.nn.Sequential(
-            fused_comb_fn(1, n_filters, sr=combnet.SAMPLE_RATE, window_size=combnet.WINDOW_SIZE, stride=combnet.HOPSIZE),
+            comb,
             torch.nn.AdaptiveMaxPool1d(1),
             torch.nn.Flatten(1, 2),
             torch.nn.Linear(n_filters, n_filters),
