@@ -105,6 +105,10 @@ class FusedComb1d(torch.nn.Module):
         comb_fn=None,
         window_size=None,
         stride=None,
+        min_freq=None,
+        max_freq=None,
+        min_bin=None,
+        max_bin=None
     ):
         super().__init__()
 
@@ -128,7 +132,28 @@ class FusedComb1d(torch.nn.Module):
         self.d = (out_channels,in_channels)
         self.la = learn_alpha
 
-        self.f = torch.nn.Parameter( torch.rand( out_channels, in_channels)*(500-50)+50, requires_grad=True)
+        scaling_parameters = [min_freq, max_freq, min_bin, max_bin]
+        if True in [p is not None for p in scaling_parameters]: # Is this a good way to do this?
+            assert True not in [p is None for p in scaling_parameters]
+            nbins = max_bin-min_bin
+            fratio = max_freq/min_freq
+            @torch.compile
+            def scaling_function(f: torch.Tensor): # f = output_channels x input_channels
+                f = min_freq * (fratio ** ((max_bin * torch.nn.functional.sigmoid(f) - min_bin) / nbins))
+                return f
+            self.scaling_function = scaling_function
+        else:
+            self.scaling_function = None
+
+        if self.scaling_function:
+            if combnet.F0_INIT_METHOD == 'random':
+                self.f = torch.nn.Parameter(torch.rand(out_channels, in_channels) * 2 - 1, requires_grad=True)
+            elif combnet.F0_INIT_METHOD == 'equal':
+                assert in_channels == 1 # TODO generalize
+                self.f = torch.nn.Parameter(torch.linspace(-1, 1, out_channels)[:, None], requires_grad=True)
+        else:
+            assert combnet.F0_INIT_METHOD == 'random'
+            self.f = torch.nn.Parameter(torch.rand(out_channels, in_channels)*(500-50)+50, requires_grad=True)
 
         if gain is None:
             gain = 1.0
@@ -172,11 +197,15 @@ class FusedComb1d(torch.nn.Module):
         # return fractional_comb_fir_multitap(x, self.f.to(d), self.a.to(d), self.sr) + self.b.to(d)
         # return fractional_comb_fir_multitap_lerp(x, self.f.to(d), self.a.to(d), self.sr) + self.b.to(d)
         # return fractional_comb_fir_multitap_lerp_explicit(x, self.f.to(d), self.a.to(d), self.sr) + self.b.to(d)
+        if self.scaling_function:
+            f = self.scaling_function(self.f.to(d))
+        else:
+            f = self.f.to(d)
         if self.training:
-            return self.comb_fn(x, self.f.to(d), self.a.to(d), self.sr, self.window_size, self.stride) + self.b.to(d)
+            return self.comb_fn(x, f, self.a.to(d), self.sr, self.window_size, self.stride) + self.b.to(d)
         else: # TODO Debug
             with torch.no_grad():
-                return self.comb_fn(x, self.f.to(d), self.a.to(d), self.sr, self.window_size, self.stride) + self.b.to(d)
+                return self.comb_fn(x, f, self.a.to(d), self.sr, self.window_size, self.stride) + self.b.to(d)
         # return fractional_comb_fiir(x, self.f.to(d), self.a.to(d), self.sr) + self.b.to(d)
 
 Comb1dFIIR = partial(Comb1d, comb_fn=combnet.filters.fractional_comb_fiir)

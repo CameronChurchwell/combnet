@@ -3,6 +3,7 @@ from pathlib import Path
 import torch
 import yapecs
 import combnet
+from typing import Union, Optional, List, Dict
 
 import GPUtil
 
@@ -13,7 +14,7 @@ import GPUtil
 
 
 # Configuration name
-CONFIG = 'combnet'
+CONFIG: str = 'combnet'
 
 
 ###############################################################################
@@ -22,32 +23,32 @@ CONFIG = 'combnet'
 
 
 # Names of all normal datasets
-DATASETS = ['giantsteps', 'giantsteps_mtg', 'ptdb', 'mdb']
+DATASETS: List[str] = ['giantsteps', 'giantsteps_mtg', 'ptdb', 'mdb']
 
 # Names of all synthetic datasets
-SYNTHETIC_DATASETS = ['chords']
+SYNTHETIC_DATASETS: List[str] = ['chords']
 
 @yapecs.ComputedProperty(compute_once=False)
-def ALL_DATASETS():
+def ALL_DATASETS() -> List[str]:
     return combnet.DATASETS + combnet.SYNTHETIC_DATASETS
 
 # Datasets for evaluation
-EVALUATION_DATASETS = ['giantsteps']
+EVALUATION_DATASETS: List[str] = ['giantsteps']
 
-FEATURES = ['spectrogram']
+FEATURES: List[str] = ['spectrogram']
 
-INPUT_FEATURES = ['spectrogram']
+INPUT_FEATURES: List[str] = ['spectrogram']
 
 # SAMPLE_RATE = 16000
-SAMPLE_RATE = 44_100
+SAMPLE_RATE: Union[float, int] = 44_100
 
-HOPSIZE = (SAMPLE_RATE // 5)
+HOPSIZE: int = (SAMPLE_RATE // 5)
 
-N_FFT = 8192
+N_FFT: int = 8192
 
-WINDOW_SIZE = 8192
+WINDOW_SIZE: int = 8192
 
-KEY_MAP = {
+KEY_MAP: Dict[str, str] = {
     'A# minor': 'Bb minor',
     'C# minor': 'Db minor',
     'D# minor': 'Eb minor',
@@ -60,9 +61,9 @@ KEY_MAP = {
     'G# major': 'Ab major',
 }
 
-GIANTSTEPS_KEYS = ['E minor','F minor', 'G minor', 'Db minor', 'C minor', 'Ab major', 'Eb minor', 'G major', 'Bb minor', 'A minor', 'C major', 'D minor', 'Ab minor', 'F major', 'Gb minor', 'B minor', 'Eb major', 'Bb major', 'A major', 'B major', 'D major', 'E major', 'Gb major', 'Db major']
+GIANTSTEPS_KEYS: List[str] = ['E minor','F minor', 'G minor', 'Db minor', 'C minor', 'Ab major', 'Eb minor', 'G major', 'Bb minor', 'A minor', 'C major', 'D minor', 'Ab minor', 'F major', 'Gb minor', 'B minor', 'Eb major', 'Bb major', 'A major', 'B major', 'D major', 'E major', 'Gb major', 'Db major']
 
-CLASS_MAP = {k: i for i, k in enumerate(GIANTSTEPS_KEYS)}
+CLASS_MAP: Dict[str, int] = {k: i for i, k in enumerate(GIANTSTEPS_KEYS)}
 
 ###############################################################################
 # Directories
@@ -148,6 +149,11 @@ MEMORY_CACHING = False
 # Seed for all random number generators
 RANDOM_SEED = 1234
 
-OPTIMIZER_FACTORY = torch.optim.Adam
+OPTIMIZER_FACTORY: torch.optim.Optimizer = torch.optim.Adam
+SCHEDULER_FACTORY: torch.optim.lr_scheduler.LRScheduler = None
+SCHEDULER_KWARGS = {}
 
 PARAM_GROUPS = None
+
+# choice from 'equal' and 'random'
+F0_INIT_METHOD = 'random'

@@ -1,31 +1,7 @@
 MODULE = 'penn'
 
-CONFIG = 'combnet'
-
-import yapecs
-
-@yapecs.ComputedProperty(compute_once=False)
-def DATA_DIR():
-    import combnet
-    return combnet.DATA_DIR
-
-@yapecs.ComputedProperty(compute_once=False)
-def CACHE_DIR():
-    import combnet
-    return combnet.CACHE_DIR
-
-@yapecs.ComputedProperty(compute_once=False)
-def ASSETS_DIR():
-    import combnet
-    return combnet.ASSETS_DIR
-
-@yapecs.ComputedProperty(compute_once=False)
-def RUNS_DIR():
-    import combnet
-    return combnet.RUNS_DIR
-
-
-# Remainder of file is taken from config/crepe.py in penn
+# Configuration name
+CONFIG = 'crepe'
 
 # Batch size
 BATCH_SIZE = 32

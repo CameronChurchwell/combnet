@@ -31,4 +31,4 @@ EVALUATION_INTERVAL = 500  # steps
 CHECKPOINT_INTERVAL = 5_000 # steps
 
 # Number of training steps
-STEPS = 10_000 # steps
+STEPS = 100_000 # steps

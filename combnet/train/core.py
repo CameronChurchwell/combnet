@@ -5,9 +5,15 @@ import GPUtil
 import torch
 import torchutil
 import time
+import sys
 
 import combnet
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    import penn
+else:
+    from combnet import penn
 
 ###############################################################################
 # Train
@@ -17,6 +23,27 @@ import combnet
 @torchutil.notify('train')
 def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
     """Train a model"""
+
+    if dataset in ['mdb', 'ptdb'] or dataset == 'mdb+ptdb':
+        if dataset == 'mdb+ptdb':
+            datasets = ['mdb', 'ptdb']
+        else:
+            datasets = [dataset]
+
+        # penn model setup
+        def Model(name=None):
+            return combnet.Model()
+        penn.model.Model = Model
+
+        penn_train = sys.modules['penn.train.core']
+        original_penn_evaluate = penn_train.evaluate
+        def wrapped_evaluate(directory, step, model, gpu, condition, loader):
+            log_f0(directory, step, model)
+            return original_penn_evaluate(directory, step, model, gpu, condition, loader)
+        penn_train.evaluate = wrapped_evaluate
+        penn.train(datasets, directory, gpu=gpu)
+        return
+
     # Create output directory
     directory.mkdir(parents=True, exist_ok=True)
 
@@ -54,6 +81,16 @@ def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
     else:
         optimizer = combnet.OPTIMIZER_FACTORY(model.parameters())
 
+    ####################
+    # Create scheduler #
+    ####################
+
+    scheduler: torch.optim.lr_scheduler.LRScheduler
+    if combnet.SCHEDULER_FACTORY is not None:
+        scheduler = combnet.SCHEDULER_FACTORY(optimizer, **combnet.SCHEDULER_KWARGS)
+    else:
+        scheduler = None
+
     ##############################
     # Maybe load from checkpoint #
     ##############################
@@ -68,6 +105,9 @@ def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
             model,
             optimizer)
         step, epoch = state['step'], state['epoch']
+        if 'scheduler' in state and state['scheduler'] is not None:
+            assert scheduler is not None
+            scheduler.load_state_dict(state['scheduler'])
 
     else:
 
@@ -138,15 +178,25 @@ def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
             ############
             # Evaluate #
             ############
-
             if step % combnet.LOG_INTERVAL == 0:
                 if hasattr(model, 'parameter_groups'):
                     groups = model.parameter_groups()
                     if 'f0' in groups:
                         f = groups['f0'][0] # TODO expand to more than just first?
+                        # for child in model.get_submodule
+                        scaling_function = None
+                        grouped_scalars = {}
+                        for m in model.modules():
+                            if hasattr(m, 'scaling_function'):
+                                scaling_function: callable = getattr(m, 'scaling_function')
+                                break
                         f = f.detach().cpu().flatten() #TODO expand to handle non-flat
+                        if scaling_function:
+                            # f_unscaled = {str(i): f_val for i, f_val in enumerate(f)}
+                            # grouped_scalars['f0_unscaled'] = f_unscaled
+                            f = scaling_function(f)
                         f = {str(i): f_val for i, f_val in enumerate(f)}
-                        grouped_scalars = {f'f0': f}
+                        grouped_scalars['f0'] = f
                         torchutil.tensorboard.update(directory, step, grouped_scalars=grouped_scalars)
 
             if step % combnet.EVALUATION_INTERVAL == 0:
@@ -159,10 +209,9 @@ def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
                         directory,
                         step,
                         model,
-                        evaluation_steps=evaluation_steps,
                         gpu=gpu)
-                    evaluate_fn('train', train_loader)
-                    evaluate_fn('valid', valid_loader)
+                    evaluate_fn('train', train_loader, evaluation_steps=evaluation_steps)
+                    evaluate_fn('valid', valid_loader, evaluation_steps=None)
 
             ###################
             # Save checkpoint #
@@ -174,7 +223,8 @@ def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
                     model,
                     optimizer,
                     step=step,
-                    epoch=epoch)
+                    epoch=epoch,
+                    scheduler=scheduler.state_dict() if scheduler is not None else None)
 
             ########################
             # Termination criteria #
@@ -201,6 +251,12 @@ def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
         # Update epoch
         epoch += 1
 
+        if scheduler is not None:
+            if epoch % 50 == 0:
+                scheduler.step()
+            # for i, param_group in enumerate(optimizer.param_groups):
+            #     print(f"Epoch {epoch+1}, Param group {i}: LR = {param_group['lr']:.6f}")
+
     # Close progress bar
     progress.close()
 
@@ -212,7 +268,8 @@ def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
         optimizer,
         # accelerator=accelerator,
         step=step,
-        epoch=epoch)
+        epoch=epoch,
+        scheduler=scheduler.state_dict() if scheduler is not None else None)
 
     combnet.evaluate.datasets(checkpoint=checkpoint_file, gpu=gpu)
 
@@ -271,6 +328,27 @@ def evaluate(
         torchutil.tensorboard.update(directory, step, scalars=scalars)
     model.train()
 
+
+def log_f0(directory, step, model):
+    if hasattr(model, 'parameter_groups'):
+        groups = model.parameter_groups()
+        if 'f0' in groups:
+            f = groups['f0'][0] # TODO expand to more than just first?
+            # for child in model.get_submodule
+            scaling_function = None
+            grouped_scalars = {}
+            for m in model.modules():
+                if hasattr(m, 'scaling_function'):
+                    scaling_function: callable = getattr(m, 'scaling_function')
+                    break
+            f = f.detach().cpu().flatten() #TODO expand to handle non-flat
+            if scaling_function:
+                # f_unscaled = {str(i): f_val for i, f_val in enumerate(f)}
+                # grouped_scalars['f0_unscaled'] = f_unscaled
+                f = scaling_function(f)
+            f = {str(i): f_val for i, f_val in enumerate(f)}
+            grouped_scalars['f0'] = f
+            torchutil.tensorboard.update(directory, step, grouped_scalars=grouped_scalars)
 
 ###############################################################################
 # Loss function

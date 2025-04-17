@@ -6,4 +6,4 @@ if TYPE_CHECKING:
 else:
     from combnet import penn
 
-penn.model.crepe.Crepe()
+Crepe = penn.model.crepe.Crepe

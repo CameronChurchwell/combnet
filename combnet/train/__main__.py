@@ -16,12 +16,13 @@ def main(config, dataset, gpu=None):
     directory = combnet.RUNS_DIR / combnet.CONFIG
     directory.mkdir(parents=True, exist_ok=True)
 
-    # Save configuration
-    try:
-        shutil.copyfile(config, directory / config.name)
-    except shutil.SameFileError:
-        import warnings
-        warnings.warn('Skipping config copy, config in run dir is being used directly!')
+    # Save configuration(s)
+    for conf in config:
+        try:
+            shutil.copyfile(conf, directory / conf.name)
+        except shutil.SameFileError:
+            import warnings
+            warnings.warn('Skipping config copy, config in run dir is being used directly!')
 
     # Train
     combnet.train(dataset, directory, gpu=gpu)
@@ -33,8 +34,9 @@ def parse_args():
     parser.add_argument(
         '--config',
         type=Path,
-        default=combnet.DEFAULT_CONFIGURATION,
-        help='The configuration file')
+        default=[combnet.DEFAULT_CONFIGURATION],
+        help='The configuration file',
+        nargs='+')
     parser.add_argument(
         '--dataset',
         default='giantsteps',

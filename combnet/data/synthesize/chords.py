@@ -6,16 +6,65 @@ import numpy as np
 import copy
 import tqdm
 import json
+import torchutil
 
 import combnet
 
+#TODO move this inside of a function or conditional so it isn't necessary (it's relatively fragile)
 # Initialize the synthesizer
 fl = fluidsynth.Synth(samplerate=combnet.SAMPLE_RATE)
 
 # Pick a soundfont and a patch
-# TODO automate download from https://schriscollins.website/wp-content/uploads/2022/01/GeneralUser_GS_1.44-SoftSynth.zip
-sf = '/usr/local/share/GUv1.44.sf2' # you can download this from https://schristiancollins.com/generaluser.php, place wherever you like
-fl.program_select( 0, fl.sfload( sf), 0, 1) # 1 = piano patch
+sf = combnet.DATA_DIR / 'GeneralUser GS 1.44 SoftSynth' / 'GeneralUser GS SoftSynth v1.44.sf2'
+if not sf.exists():
+    torchutil.download.zip(
+        'https://schriscollins.website/wp-content/uploads/2022/01/GeneralUser_GS_1.44-SoftSynth.zip',
+        combnet.DATA_DIR,
+        use_headers=True
+    )
+assert sf.exists()
+sf = str(sf)
+# sf = '/usr/local/share/GUv1.44.sf2' # you can download this from https://schristiancollins.com/generaluser.php, place wherever you like
+soundfont = fl.sfload(sf)
+fl.program_select(0, soundfont, 0, 1) # 1 = piano patch
+allowed_instruments = [
+    0, #Stereo Grand
+    1, #Bright Grand
+    2, #Electric Grand
+    # 4, #Tine Electric Piano
+    # 5, #FM Electric Piano
+    # 6, #Harpsichord
+    # 9, #Glockenspiel
+    11, #Vibraphone
+    12, #Marimba
+    # 13, #Xylophone
+    19, #Pipe Organ
+    # 21, #Accordian
+    # 22, #Harmonica
+    # 24, #Nylon Guitar
+    # 25, #Steel Guitar
+    # 32, #Acoustic Bass
+    # 35, #Fretless Bass
+    # 36, #Slap Bass 1
+    # 38, #Synth Bass 1
+    40, #Violin
+    # 41, #Viola
+    # 42, #Cello
+    # 50, #Synth Strings 1
+    # 51, #Synth Strings 2
+    # 53, #Voice Oohs
+    56, #Trumpet
+    57, #Trombone
+    58, #Tuba
+    60, #French Horns
+    65, #Alto Sax
+    66, #Tenor Sax
+    # 67, #Baritone Sax
+    # 68, #Oboe
+    # 70, #Bassoon
+    71, #Clarinet
+    73, #Flute
+]
 # fl.program_select( 0, , 0, 10) # 10 = glockenspiel patch
 
 beadgcf = ["B", "E", "A", "D", "G", "C", "F"]
@@ -56,8 +105,8 @@ def fixInversion(nums):
     return nums
 
 def getNoteNums(names):
-    # octave_shift = choice([0, 12, 24, 36])
-    octave_shift = choice([12, 24, 36])
+    octave_shift = choice([0, 12, 24, 36])
+    # octave_shift = choice([12, 24, 36])
     # octave_shift = 0
     # octave_shift = 36
     nums = [getNoteNum(n) + octave_shift for n in names]
@@ -201,24 +250,27 @@ def generate_notes(chord):
         # note = randint( 0, 11) + 12*randint( -1, 1) + 60 # or pure chaos
 
         # Define start silence/duration/end silence times in seconds
-        start = random()*0.05
-        hold = random()*2 + 0.2
-        end = random()*.05
+        start = random()*0.1
+        hold = (random() ** 0.2) * 2 + 0.2
+        end = random()*.1
 
         # Define pitch bend and key velocity
         bend = randint( -10, 10) # make it subtle, can go from -8192 to 8192
         velocity = randint( 80, 127) # 0 to 127
 
         # Make the note and add it to the list
-        z += [get_note( note, velocity, bend, start, hold, end)]
+        z += [get_note(note, velocity, bend, start, hold, end)]
 
     max_len = max(len(ch) for ch in z)
     out = np.zeros(max_len, dtype=z[0].dtype)
+    h = np.hanning(32)[16:] # prevent severe discontinuities
     for ch in z:
+        ch[-16:] *= h
         out[:len(ch)] += ch
     return out
 
-def chords(n=500, chords=["C", "F", "Bb", "Eb"], task='categorical'):
+ALL_CHORDS = ["C", "F", "Bb", "Eb", "Ab", "Db", "Gb", "B", "E", "A", "D", "G"]
+def chords(n=1000, chords=ALL_CHORDS, task='categorical'):
     """
     Generate the chords synthetic dataset using pyfluidsynth
     """
@@ -226,7 +278,6 @@ def chords(n=500, chords=["C", "F", "Bb", "Eb"], task='categorical'):
     dataset_dir.mkdir(parents=True, exist_ok=True)
     #TODO add random seeding
     # all_chords = chords + [c + 'm' for c in chords]
-    all_chords = chords
     for i in tqdm.tqdm(range(0, n), desc='synthesizing chords dataset', total=n, dynamic_ncols=True):
         stem = str(i)
         # chord = "C"
@@ -235,7 +286,10 @@ def chords(n=500, chords=["C", "F", "Bb", "Eb"], task='categorical'):
         is_major = True
         key = Key.fromName(chord)
         notes = key.getMajorChord() if is_major else key.getMinorChord()
+        instrument = choice(allowed_instruments)
+        fl.program_select(0, soundfont, 0, instrument)
         chord_audio = torch.tensor(generate_notes(notes), dtype=torch.float32)[None]
+        chord_audio /= abs(chord_audio).max() # normalize to [-1, 1]
         quality = 'major' if is_major else 'minor'
         label = chord + ('m' if not is_major else '')
         torchaudio.save(dataset_dir / f'{stem}.wav', chord_audio, combnet.SAMPLE_RATE)
@@ -246,3 +300,5 @@ def chords(n=500, chords=["C", "F", "Bb", "Eb"], task='categorical'):
             f.write(quality)
         with open(dataset_dir / f'{stem}.chord', 'w+') as f:
             f.write(label)
+        with open(dataset_dir / f'{stem}.instrument', 'w+') as f:
+            f.write(str(instrument))

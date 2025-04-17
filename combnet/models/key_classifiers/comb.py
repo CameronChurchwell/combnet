@@ -92,7 +92,7 @@ class Unsqueeze(torch.nn.Module):
 
 
 class CombClassifier(torch.nn.Module):
-    def __init__(self, n_filters=12, fused_comb_fn='FusedComb1d'):
+    def __init__(self, n_filters=12, fused_comb_fn='FusedComb1d', n_conv_layers=5, comb_kwargs={}):
         super().__init__()
         fused_comb_fn = getattr(combnet.modules, fused_comb_fn)
         centers = None
@@ -105,9 +105,12 @@ class CombClassifier(torch.nn.Module):
             unique_filters=True
         ).center_frequencies, dtype=torch.float32)
         self.filters = torch.nn.Sequential(
-            fused_comb_fn(1, n_filters, sr=combnet.SAMPLE_RATE, window_size=combnet.WINDOW_SIZE, stride=combnet.HOPSIZE),
+            fused_comb_fn(1, n_filters, sr=combnet.SAMPLE_RATE, window_size=combnet.WINDOW_SIZE, stride=combnet.HOPSIZE,
+                **comb_kwargs
+            ),
         )
-        self.filters[0].f.data = centers[:n_filters, None]
+        if len(comb_kwargs) == 0:
+            self.filters[0].f.data = centers[:n_filters, None]
         # if static_filters:
         #     # DEBUG
         #     # self.filters[0] = comb_fn(1, 2)
@@ -120,23 +123,15 @@ class CombClassifier(torch.nn.Module):
         # self.filters[0].f.data *= 2
 
         self.train()
+        activation = torch.nn.ReLU
 
-        self.layers = torch.nn.Sequential(
+        self.layers = torch.nn.Sequential(*([
             torch.nn.Conv2d(1, 8, (5, 5), (1, 1), (2, 2)),
-            torch.nn.ELU(),
-
+            activation(),
+        ] + sum([[
             torch.nn.Conv2d(8, 8, (5, 5), (1, 1), (2, 2)),
-            torch.nn.ELU(),
-
-            torch.nn.Conv2d(8, 8, (5, 5), (1, 1), (2, 2)),
-            torch.nn.ELU(),
-
-            torch.nn.Conv2d(8, 8, (5, 5), (1, 1), (2, 2)),
-            torch.nn.ELU(),
-
-            torch.nn.Conv2d(8, 8, (5, 5), (1, 1), (2, 2)), 
-            torch.nn.ELU(),
-
+            activation(),
+        ] for _ in range(1, n_conv_layers)], start=[]) + [
             # Sum(1),
             # Break(),
             torch.nn.Flatten(1, 2),
@@ -144,7 +139,7 @@ class CombClassifier(torch.nn.Module):
             # Permute(0, 1, 3, 2),
 
             torch.nn.Linear(n_filters * 8, 48),
-            torch.nn.ELU(),
+            activation(),
 
             Permute(0, 2, 1),
             # Permute(0, 1, 3, 2),
@@ -152,12 +147,12 @@ class CombClassifier(torch.nn.Module):
             # torch.nn.Flatten(1, 2),
 
             torch.nn.AdaptiveAvgPool1d(1),
-            torch.nn.ELU(),
+            activation(),
             torch.nn.Flatten(1, 2),
 
             torch.nn.Linear(48, 24),
             torch.nn.Softmax(dim=1)
-        )
+        ]))
         self.window = torch.hann_window(combnet.WINDOW_SIZE)
 
     def to(self, device):

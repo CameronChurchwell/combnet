@@ -4,7 +4,7 @@ globals().update(vars(yapecs.import_from_path('chords', Path(__file__).parent / 
 
 MODULE = 'combnet'
 
-CONFIG = 'chords-comb'
+CONFIG = 'chords-comb-scaled-static'
 
 MODEL_CLASS = 'CombClassifier'
 
@@ -18,14 +18,21 @@ PARAM_GROUPS = {
     # 'main': {'lr': 0.0001, 'momentum': 0.9, 'weight_decay': 1e-4},
     'main': {'lr': 5e-5},
     # 'f0': {'lr': 0.1, 'betas': [0.9, 0.999]}
-    'f0': {'lr': 0.1, 'betas': [0.9, 0.999]}
+    'f0': {'lr': 0.}
 }
 OPTIMIZER_FACTORY = torch.optim.Adam
 # OPTIMIZER_FACTORY = partial(torch.optim.AdamW, lr=0.000001, weight_decay=1e-4)
 # OPTIMIZER_FACTORY = partial(torch.optim.SGD, lr=0.0005, momentum=0.9, weight_decay=1e-4)
 
 # MODEL_KWARGS = {'n_filters': 16}
-MODEL_KWARGS = {'n_filters': 12}
+MODEL_KWARGS = {
+    'n_filters': 12,
+    'comb_kwargs': {
+        'min_bin': 20,
+        'max_bin': 84,
+        'min_freq': 25.95,
+        'max_freq': 1046.5
+    }}
 
 # Number of steps between evaluation tensorboard logging
 EVALUATION_INTERVAL = 500  # steps

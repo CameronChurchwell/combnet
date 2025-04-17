@@ -1,10 +1,11 @@
+from functools import partial
 from pathlib import Path
 import yapecs
 globals().update(vars(yapecs.import_from_path('chords', Path(__file__).parent / 'chords.py')))
 
 MODULE = 'combnet'
 
-CONFIG = 'chords-comb'
+CONFIG = 'chords-comb-scaled-sched'
 
 MODEL_CLASS = 'CombClassifier'
 
@@ -14,21 +15,31 @@ import torch
 # from functools import partial
 # OPTIMIZER_FACTORY = partial(torch.optim.SGD, lr=0.001, momentum=0.9)
 PARAM_GROUPS = {
-    # 'main': {'lr': 0.001, 'momentum': 0.9, 'weight_decay': 1e-4},
-    # 'main': {'lr': 0.0001, 'momentum': 0.9, 'weight_decay': 1e-4},
-    'main': {'lr': 5e-5},
-    # 'f0': {'lr': 0.1, 'betas': [0.9, 0.999]}
-    'f0': {'lr': 0.1, 'betas': [0.9, 0.999]}
+    # 'main': {'lr': 5e-5},
+    # 'f0': {'lr': 1e-4}
+    'main': {'lr': 1e-4},
+    'f0': {'lr': 1e-3}
 }
 OPTIMIZER_FACTORY = torch.optim.Adam
 # OPTIMIZER_FACTORY = partial(torch.optim.AdamW, lr=0.000001, weight_decay=1e-4)
 # OPTIMIZER_FACTORY = partial(torch.optim.SGD, lr=0.0005, momentum=0.9, weight_decay=1e-4)
 
 # MODEL_KWARGS = {'n_filters': 16}
-MODEL_KWARGS = {'n_filters': 12}
+MODEL_KWARGS = {
+    'n_filters': 12,
+    'comb_kwargs': {
+        'min_bin': 20,
+        'max_bin': 84,
+        'min_freq': 25.95,
+        'max_freq': 1046.5
+    }}
 
 # Number of steps between evaluation tensorboard logging
 EVALUATION_INTERVAL = 500  # steps
 
 # Number of training steps
 STEPS = 50_000
+
+# Learning rate scheduler
+SCHEDULER_FACTORY = torch.optim.lr_scheduler.ExponentialLR
+SCHEDULER_KWARGS = {'gamma': 0.95}

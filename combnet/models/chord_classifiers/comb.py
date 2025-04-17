@@ -92,16 +92,18 @@ class Unsqueeze(torch.nn.Module):
 
 
 class CombClassifier(torch.nn.Module):
-    def __init__(self, n_filters=12, fused_comb_fn='FusedComb1d', comb_fn=None):
+    def __init__(self, n_filters=12, fused_comb_fn='FusedComb1d', comb_fn=None, comb_kwargs={}):
         super().__init__()
         if comb_fn is None:
             comb = getattr(combnet.modules, fused_comb_fn)(
-                1, n_filters, sr=combnet.SAMPLE_RATE, window_size=combnet.WINDOW_SIZE, stride=combnet.HOPSIZE
+                1, n_filters, sr=combnet.SAMPLE_RATE, window_size=combnet.WINDOW_SIZE, stride=combnet.HOPSIZE,
+                **comb_kwargs
             )
         else:
             assert fused_comb_fn is None
             comb = getattr(combnet.modules, comb_fn)(
-                1, n_filters, sr=combnet.SAMPLE_RATE
+                1, n_filters, sr=combnet.SAMPLE_RATE,
+                **comb_kwargs
             )
         # centers = None
         # import numpy as np
@@ -125,7 +127,7 @@ class CombClassifier(torch.nn.Module):
         )
         self.train()
         # self.layers[0].f.data = centers[:n_filters, None]
-        torch.linspace(200, 500, self.layers[0].f.data.shape[0])[:, None]
+        # self.layers = torch.linspace(200, 500, self.layers[0].f.data.shape[0])[:, None]
 
     def parameter_groups(self):
         groups = {}

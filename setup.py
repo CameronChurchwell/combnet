@@ -85,7 +85,7 @@ setup(
     author='Cameron Churchwell',
     author_email='cameronchurchwell@icloud.com',
     url='https://github.com/CameronChurchwell/combnet',
-    install_requires=['accelerate', 'GPUtil', 'torch', 'torchutil', 'yapecs', 'librosa', 'resampy'],
+    install_requires=['accelerate', 'GPUtil', 'torch', 'torchutil', 'yapecs', 'librosa', 'resampy', 'penn', 'jax', 'pyfluidsynth', 'matplotlib'],
     packages=find_packages(),
     package_data={'combnet': ['assets/*', 'assets/*/*']},
     long_description=long_description,

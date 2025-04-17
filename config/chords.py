@@ -12,7 +12,8 @@ HOPSIZE = (SAMPLE_RATE // 5)
 
 FEATURES = ['audio', 'class']
 
-CHORDS = ["C", "F", "Bb", "Eb"]
+# CHORDS = ["C", "F", "Bb", "Eb"]
+CHORDS = ["C", "F", "Bb", "Eb", "Ab", "Db", "Gb", "B", "E", "A", "D", "G"]
 
 CLASS_MAP = {k: i for i, k in enumerate(CHORDS)}
 
@@ -28,3 +29,5 @@ EVALUATION_INTERVAL = 50  # steps
 
 # Number of training steps
 STEPS = 10_000
+
+BATCH_SIZE = 8

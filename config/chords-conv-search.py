@@ -21,12 +21,9 @@ if hasattr(combnet, 'defaults'):
     def format_float(f):
         return str(f).replace('.', '_')
 
-    # learning_rate = [5e-3, 1e-3, 5e-4, 1e-4, 5e-5, 1e-5]
-    learning_rate = [1e-2, 5e-3, 1e-3]
-    # kernel_size = [32, 48, 64, 128]
-    kernel_size = [192, 256]
-    # n_channels = [16, 32, 48]
-    n_channels = [4]
+    learning_rate = [5e-3, 1e-3, 5e-4]
+    kernel_size = [128, 256, 512]
+    n_channels = [8, 16, 32]
 
     if os.getenv('COMBNET_NO_SEARCH') is None:
         LEARNING_RATE, KERNEL_SIZE, N_CHANNELS = yapecs.grid_search(
@@ -62,4 +59,4 @@ EVALUATION_INTERVAL = 500  # steps
 CHECKPOINT_INTERVAL = 5_000
 
 # Number of training steps
-STEPS = 10_000
+STEPS = 50_000
