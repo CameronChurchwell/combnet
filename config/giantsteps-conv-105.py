@@ -1,6 +1,7 @@
 MODULE = 'combnet'
 
-CONFIG = 'giantsteps-conv-105'
+from pathlib import Path
+CONFIG = Path(__file__).stem
 
 SAMPLE_RATE = 44_100
 
@@ -41,7 +42,8 @@ MODEL_KWARGS = {'features': '105'}
 
 # MODULE = 'combnet'
 
-# CONFIG = 'giantsteps-conv-105'
+# from pathlib import Path
+# CONFIG = Path(__file__).stem
 
 # SAMPLE_RATE = 44_100
 

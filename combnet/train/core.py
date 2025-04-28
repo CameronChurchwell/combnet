@@ -88,6 +88,7 @@ def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
     scheduler: torch.optim.lr_scheduler.LRScheduler
     if combnet.SCHEDULER_FACTORY is not None:
         scheduler = combnet.SCHEDULER_FACTORY(optimizer, **combnet.SCHEDULER_KWARGS)
+        # scheduler.step()
     else:
         scheduler = None
 
@@ -153,6 +154,28 @@ def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
 
             # if step % 1000 == 0:
             #     print(torch.cuda.memory_summary(device))
+
+            # TODO optimize this code, it might be slow...
+            if combnet.FREEZE_POINTS is not None and combnet.PARAM_GROUPS is not None:
+                groups = model.parameter_groups()
+                assert set(groups.keys()) == set(combnet.FREEZE_POINTS.keys())
+                param_groups = []
+                for name, points in combnet.FREEZE_POINTS.items():
+                    if step in points:
+                        print(f'freezing parameters for group {name} at step {step}')
+                        params = groups[name]
+                        for p in params:
+                            p.requires_grad_(False)
+            if combnet.UNFREEZE_POINTS is not None and combnet.PARAM_GROUPS is not None:
+                groups = model.parameter_groups()
+                assert set(groups.keys()) == set(combnet.UNFREEZE_POINTS.keys())
+                param_groups = []
+                for name, points in combnet.UNFREEZE_POINTS.items():
+                    if step in points:
+                        print(f'unfreezing parameters for group {name} at step {step}')
+                        params = groups[name]
+                        for p in params:
+                            p.requires_grad_(True)
 
             # Forward pass
             z = model(x)
@@ -252,8 +275,9 @@ def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
         epoch += 1
 
         if scheduler is not None:
-            if epoch % 50 == 0:
-                scheduler.step()
+            scheduler.step()
+            print(f'Epoch {epoch}: stepping scheduler: {scheduler.get_last_lr()}')
+            # if epoch % 50 == 0:
             # for i, param_group in enumerate(optimizer.param_groups):
             #     print(f"Epoch {epoch+1}, Param group {i}: LR = {param_group['lr']:.6f}")
 

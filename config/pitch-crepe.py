@@ -1,6 +1,7 @@
 MODULE = 'combnet'
 
-CONFIG = 'pitch-crepe'
+from pathlib import Path
+CONFIG = Path(__file__).stem
 
 MODEL_MODULE = 'pitch_estimation'
 

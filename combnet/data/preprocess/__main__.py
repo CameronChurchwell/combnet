@@ -17,6 +17,11 @@ def parse_args():
         nargs='+',
         help='The names of the datasets to preprocess')
     parser.add_argument(
+        '--features',
+        default=['spectrogram'], #TODO change to config value
+        nargs='+',
+        help='The names of the features to preprocess')
+    parser.add_argument(
         '--gpu',
         default=None,
         help='GPU to use for preprocessing'

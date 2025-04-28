@@ -23,7 +23,7 @@ CONFIG: str = 'combnet'
 
 
 # Names of all normal datasets
-DATASETS: List[str] = ['giantsteps', 'giantsteps_mtg', 'ptdb', 'mdb']
+DATASETS: List[str] = ['giantsteps', 'giantsteps_mtg', 'ptdb', 'mdb', 'maestro']
 
 # Names of all synthetic datasets
 SYNTHETIC_DATASETS: List[str] = ['chords']
@@ -35,7 +35,7 @@ def ALL_DATASETS() -> List[str]:
 # Datasets for evaluation
 EVALUATION_DATASETS: List[str] = ['giantsteps']
 
-FEATURES: List[str] = ['spectrogram']
+FEATURES: List[str] = ['spectrogram', 'highpass_audio']
 
 INPUT_FEATURES: List[str] = ['spectrogram']
 
@@ -47,6 +47,9 @@ HOPSIZE: int = (SAMPLE_RATE // 5)
 N_FFT: int = 8192
 
 WINDOW_SIZE: int = 8192
+# @yapecs.ComputedProperty(compute_once=True)
+# def WINDOW_SIZE() -> int:
+#     return combnet.N_FFT
 
 KEY_MAP: Dict[str, str] = {
     'A# minor': 'Bb minor',
@@ -157,3 +160,7 @@ PARAM_GROUPS = None
 
 # choice from 'equal' and 'random'
 F0_INIT_METHOD = 'random'
+
+# TODO document these
+FREEZE_POINTS = None
+UNFREEZE_POINTS = None

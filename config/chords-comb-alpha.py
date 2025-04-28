@@ -14,22 +14,24 @@ globals().update(vars(yapecs.import_from_path('chords', base_config_path)))
 
 MODEL_CLASS = 'CombClassifier'
 
-RUNS_DIR = Path(__file__).parent.parent / 'runs.chords-comb-alpha'
+RUNS_DIR = Path(__file__).parent.parent / 'runs.alpha'
 
 if hasattr(combnet, 'defaults'):
 
     def format_float(f):
-        return str(f).replace('.', '_')
+        return f'{f:.03f}'.replace('.', '_')
 
-    alpha = np.arange(0.5, 1, 0.05).tolist()
+    alpha = np.arange(0.8, 1, 0.025).tolist()
 
     if os.getenv('COMBNET_NO_SEARCH') is None:
         ALPHA, = yapecs.grid_search(
-            Path(__file__).parent / 'chords-comb-scaled-alpha.progress',
+            Path(__file__).parent / 'chords-comb-alpha.progress',
             alpha
         )
     else:
         ALPHA = float(os.getenv('ALPHA'))
+
+    print((ALPHA - 0.8) / 0.2)
 
     PARAM_GROUPS = {
         'main': {'lr': 5e-5},
@@ -39,14 +41,15 @@ if hasattr(combnet, 'defaults'):
 
     # MODEL_KWARGS = {'n_filters': 16}
     MODEL_KWARGS = {
-        'n_filters': 12,
+        # 'n_filters': 24,
+        'n_filters': 32,
         'comb_kwargs': {
             'min_bin': 20,
             'max_bin': 84,
             'min_freq': 25.95,
             'max_freq': 1046.5,
             'alpha': ALPHA
-        }
+        },
     }
 
     # Number of steps between evaluation tensorboard logging
@@ -56,3 +59,5 @@ if hasattr(combnet, 'defaults'):
 
     # Number of training steps
     STEPS = 50_000
+
+    F0_INIT_METHOD = 'equal'

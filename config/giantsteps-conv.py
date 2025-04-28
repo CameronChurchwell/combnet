@@ -1,6 +1,7 @@
 MODULE = 'combnet'
 
-CONFIG = 'giantsteps-conv'
+from pathlib import Path
+CONFIG = Path(__file__).stem
 
 SAMPLE_RATE = 44_100
 N_FFT = 8192
@@ -25,12 +26,14 @@ BATCH_SIZE = 8
 import torch
 # from functools import partial
 # OPTIMIZER_FACTORY = partial(torch.optim.SGD, lr=0.001, momentum=0.9)
-PARAM_GROUPS = {
-    # 'main': {'lr': 0.001, 'momentum': 0.9, 'weight_decay': 1e-4},
-    'main': {'lr': 0.01},
-}
-OPTIMIZER_FACTORY = torch.optim.SGD
+# PARAM_GROUPS = {
+#     # 'main': {'lr': 0.001, 'momentum': 0.9, 'weight_decay': 1e-4},
+#     'main': {'lr': 0.01},
+# }
+from functools import partial
+OPTIMIZER_FACTORY = partial(torch.optim.Adam, lr=0.01)
 # OPTIMIZER_FACTORY = partial(torch.optim.Adam, lr=0.000001, weight_decay=1e-4)
 # OPTIMIZER_FACTORY = partial(torch.optim.SGD, lr=0.0005, momentum=0.9, weight_decay=1e-4)
 
-MODEL_KWARGS = {'kernel_size': SAMPLE_RATE//5, 'n_channels': 8, 'stride': SAMPLE_RATE//5} # TODO try combnet.HOPSIZE?
+# MODEL_KWARGS = {'kernel_size': SAMPLE_RATE//5, 'n_channels': 8, 'stride': SAMPLE_RATE//5} # TODO try combnet.HOPSIZE?
+MODEL_KWARGS = {'kernel_size': SAMPLE_RATE//5, 'n_channels': 64, 'stride': SAMPLE_RATE//5} # TODO try combnet.HOPSIZE?

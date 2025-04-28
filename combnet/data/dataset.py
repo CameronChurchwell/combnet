@@ -58,6 +58,12 @@ class Dataset(torch.utils.data.Dataset):
             # Load audio
             if feature == 'audio':
                 audio = combnet.load.audio(self.audio_files[index])
+                audio = audio.mean(0, keepdim=True)
+                feature_values.append(audio)
+
+            elif feature == 'highpass_audio':
+                audio = combnet.load.audio(self.cache / (stem + '-highpass_audio.wav'))
+                audio = audio.mean(0, keepdim=True)
                 feature_values.append(audio)
 
             # Add stem

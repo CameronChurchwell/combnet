@@ -1,11 +1,12 @@
 from functools import partial
 from pathlib import Path
 import yapecs
-globals().update(vars(yapecs.import_from_path('chords', Path(__file__).parent / 'chords.py')))
+globals().update({k:v for k,v in vars(yapecs.import_from_path('chords', Path(__file__).parent / 'chords.py')).items() if not k.startswith('__')})
 
 MODULE = 'combnet'
 
-CONFIG = 'chords-comb-scaled-sched'
+from pathlib import Path
+CONFIG = Path(__file__).stem
 
 MODEL_CLASS = 'CombClassifier'
 

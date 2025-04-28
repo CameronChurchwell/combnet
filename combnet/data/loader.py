@@ -7,7 +7,7 @@ def loader(
     dataset, 
     partition, 
     features=combnet.FEATURES, 
-    num_workers=0, #TODO make this override?
+    num_workers=None,
     batch_size=None,
     gpu=None):
     """Retrieve a data loader"""
@@ -24,6 +24,6 @@ def loader(
         dataset=dataset,
         batch_size=combnet.BATCH_SIZE if batch_size is None else batch_size,
         shuffle='train' in partition or 'valid' in partition if partition is not None else False,
-        num_workers=combnet.NUM_WORKERS,
+        num_workers=combnet.NUM_WORKERS if num_workers is None else num_workers,
         pin_memory=(gpu is not None),
         collate_fn=collate)

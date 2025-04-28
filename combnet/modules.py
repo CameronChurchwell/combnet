@@ -1,6 +1,8 @@
+from functools import lru_cache
 import torch
 from combnet.functional import lc_batch_comb
 from combnet.filters import *
+import torchaudio
 
 # Wrap between K and N
 def wrap(x, K, N):
@@ -90,6 +92,17 @@ class Comb1d(torch.nn.Module):
                 return self.comb_fn(x, self.f.to(d), self.a.to(d), self.sr) + self.b.to(d)
         # return fractional_comb_fiir(x, self.f.to(d), self.a.to(d), self.sr) + self.b.to(d)
 
+@lru_cache
+def design_fir_highpass(num_taps, cutoff_hz, sample_rate):
+    nyquist = sample_rate / 2
+    normalized_cutoff = cutoff_hz / nyquist
+    n = torch.arange(num_taps) - (num_taps - 1) / 2
+    h = -torch.sinc(2 * normalized_cutoff * n)
+    h[(num_taps - 1) // 2] += 1
+    window = torch.hamming_window(num_taps, periodic=False)
+    h = h * window
+    return h.flip(0)[None, None]
+
 class FusedComb1d(torch.nn.Module):
     def __init__(
         self,
@@ -104,19 +117,29 @@ class FusedComb1d(torch.nn.Module):
         sr=16000,
         comb_fn=None,
         window_size=None,
+        reduction='max',
         stride=None,
         min_freq=None,
         max_freq=None,
         min_bin=None,
-        max_bin=None
+        max_bin=None,
+        n_taps=10,
     ):
+        self.n_taps = n_taps
         super().__init__()
-
+        assert reduction in ['max', 'sum', 'mean']
+        self.reduction = reduction
         if comb_fn is None:
-            self.comb_fn = combnet.filters.fractional_comb_fir_multitap_lerp_explicit_triton_fused
+            if reduction == 'max':
+                self.comb_fn = combnet.filters.fractional_comb_fir_multitap_lerp_explicit_triton_fused
+            elif reduction == 'sum':
+                self.comb_fn = combnet.filters.fractional_comb_fir_multitap_lerp_explicit_triton
+            elif reduction == 'mean':
+                self.comb_fn = combnet.filters.fractional_comb_fir_multitap_lerp_explicit_triton
             # self.comb_fn = combnet.filters.fractional_comb_fir_multitap_lerp_explicit
         elif isinstance(comb_fn, str):
-            raise NotImplementedError("TODO implement this lookup")
+            comb_fn = getattr(combnet.filters, comb_fn)
+            self.comb_fn = comb_fn
         else:
             self.comb_fn = comb_fn
 
@@ -133,24 +156,50 @@ class FusedComb1d(torch.nn.Module):
         self.la = learn_alpha
 
         scaling_parameters = [min_freq, max_freq, min_bin, max_bin]
-        if True in [p is not None for p in scaling_parameters]: # Is this a good way to do this?
-            assert True not in [p is None for p in scaling_parameters]
-            nbins = max_bin-min_bin
-            fratio = max_freq/min_freq
-            @torch.compile
-            def scaling_function(f: torch.Tensor): # f = output_channels x input_channels
-                f = min_freq * (fratio ** ((max_bin * torch.nn.functional.sigmoid(f) - min_bin) / nbins))
-                return f
+        if min_freq is not None and max_freq is not None: # Is this a good way to do this?
+            if min_bin is not None and max_bin is not None:
+                assert True not in [p is None for p in scaling_parameters]
+                nbins = max_bin-min_bin
+                fratio = max_freq/min_freq
+                if isinstance(alpha, float) and alpha < 0:
+                    import warnings
+                    warnings.warn('using negative alpha scaling function')
+                    @torch.compile
+                    def scaling_function(f: torch.Tensor): # f = output_channels x input_channels
+                        # f = min_freq * (fratio ** ((max_bin * torch.nn.functional.sigmoid(f) - min_bin) / nbins))
+                        s = torch.nn.functional.sigmoid(f)
+                        p = nbins*s+min_bin
+                        o = min_freq * fratio ** ((p-min_bin) / nbins)
+                        return o*2
+                else:
+                    @torch.compile
+                    def scaling_function(f: torch.Tensor): # f = output_channels x input_channels
+                        # f = min_freq * (fratio ** ((max_bin * torch.nn.functional.sigmoid(f) - min_bin) / nbins))
+                        s = torch.nn.functional.sigmoid(f)
+                        p = nbins*s+min_bin
+                        o = min_freq * fratio ** ((p-min_bin) / nbins)
+                        return o
+            else:
+                assert min_bin is None and max_bin is None
+                fratio = max_freq/min_freq
+                @torch.compile
+                def scaling_function(f: torch.Tensor):
+                    s = torch.nn.functional.sigmoid(f)
+                    o = min_freq * fratio ** ((s))
+                    return o
             self.scaling_function = scaling_function
         else:
             self.scaling_function = None
 
         if self.scaling_function:
             if combnet.F0_INIT_METHOD == 'random':
-                self.f = torch.nn.Parameter(torch.rand(out_channels, in_channels) * 2 - 1, requires_grad=True)
+                self.f = torch.nn.Parameter(3*(torch.rand(out_channels, in_channels) * 2 - 1), requires_grad=True)
             elif combnet.F0_INIT_METHOD == 'equal':
                 assert in_channels == 1 # TODO generalize
-                self.f = torch.nn.Parameter(torch.linspace(-1, 1, out_channels)[:, None], requires_grad=True)
+                # self.f = torch.nn.Parameter(torch.linspace(-1, 1, out_channels)[:, None], requires_grad=True)
+                self.f = torch.nn.Parameter(torch.linspace(-3, 3, out_channels)[:, None], requires_grad=True)
+            else:
+                raise ValueError(f'unknown initialization method {combnet.F0_INIT_METHOD}')
         else:
             assert combnet.F0_INIT_METHOD == 'random'
             self.f = torch.nn.Parameter(torch.rand(out_channels, in_channels)*(500-50)+50, requires_grad=True)
@@ -191,7 +240,11 @@ class FusedComb1d(torch.nn.Module):
         return regularization, (self.g.clamp(min=0.01) ** 0.5).sum()
         # return torch.tensor(0.0, device=self.f.device), torch.tensor(0.0, device=self.f.device)
 
-    def __call__( self, x):
+    # def forward(self, x):
+    #     return self(x)
+
+    # @torch.compile()
+    def __call__(self, x):
         d = x.device
         # return lc_batch_comb(x, self.f.to(d), self.a.to(d), self.sr, self.g.to(d)) + self.b.to(d)
         # return fractional_comb_fir_multitap(x, self.f.to(d), self.a.to(d), self.sr) + self.b.to(d)
@@ -201,14 +254,29 @@ class FusedComb1d(torch.nn.Module):
             f = self.scaling_function(self.f.to(d))
         else:
             f = self.f.to(d)
-        if self.training:
-            return self.comb_fn(x, f, self.a.to(d), self.sr, self.window_size, self.stride) + self.b.to(d)
-        else: # TODO Debug
-            with torch.no_grad():
-                return self.comb_fn(x, f, self.a.to(d), self.sr, self.window_size, self.stride) + self.b.to(d)
+        # if self.training:
+        if self.reduction == 'max':
+            return self.comb_fn(
+                x,
+                f,
+                self.a.to(d),
+                self.sr,
+                self.window_size,
+                self.stride,
+                n_taps=self.n_taps
+            ) + self.b.to(d)
+        elif self.reduction == 'sum':
+            y = self.comb_fn(x, f, self.a.to(d), self.sr)
+            return torch.nn.functional.avg_pool1d(y, self.window_size, self.stride) * self.window_size
+        elif self.reduction == 'mean':
+            y = self.comb_fn(x, f, self.a.to(d), self.sr)
+            return torch.nn.functional.avg_pool1d(y, self.window_size, self.stride)
+        # else: # TODO Debug
+        #     with torch.no_grad():
+        #         return self.comb_fn(x, f, self.a.to(d), self.sr, self.window_size, self.stride) + self.b.to(d)
         # return fractional_comb_fiir(x, self.f.to(d), self.a.to(d), self.sr) + self.b.to(d)
 
-Comb1dFIIR = partial(Comb1d, comb_fn=combnet.filters.fractional_comb_fiir)
+# Comb1dFIIR = partial(Comb1d, comb_fn=combnet.filters.fractional_comb_fiir)
 
 class CombInterference1d(torch.nn.Module):
 

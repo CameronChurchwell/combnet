@@ -1,6 +1,7 @@
 MODULE = 'combnet'
 
-CONFIG = 'giantsteps-stft-madmom'
+from pathlib import Path
+CONFIG = Path(__file__).stem
 
 SAMPLE_RATE = 44_100
 

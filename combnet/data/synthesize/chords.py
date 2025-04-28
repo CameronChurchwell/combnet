@@ -55,10 +55,10 @@ allowed_instruments = [
     # 53, #Voice Oohs
     56, #Trumpet
     57, #Trombone
-    58, #Tuba
+    # 58, #Tuba
     60, #French Horns
     65, #Alto Sax
-    66, #Tenor Sax
+    # 66, #Tenor Sax
     # 67, #Baritone Sax
     # 68, #Oboe
     # 70, #Bassoon

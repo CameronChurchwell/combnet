@@ -1,6 +1,7 @@
 MODULE = 'penn'
 
-CONFIG = 'combnet'
+from pathlib import Path
+CONFIG = Path(__file__).stem
 
 import yapecs
 

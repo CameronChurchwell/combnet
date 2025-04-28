@@ -44,13 +44,12 @@ def from_audios(audio, lengths, gpu=None):
         return_complex=True)
     spectrogram = abs(stft)
 
-    # Compute magnitude
-
-    # Maybe convert to mels
     return spectrogram#.to(torch.float16)
 
 
 def from_audio(audio, sample_rate, gpu=None):
+    if sample_rate != combnet.SAMPLE_RATE:
+        audio = combnet.resample(audio, sample_rate, combnet.SAMPLE_RATE)
     if audio.dim() == 2:
         audio = audio.unsqueeze(dim=0)
     return from_audios(audio, audio.shape[-1], gpu=gpu)

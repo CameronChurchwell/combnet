@@ -99,7 +99,7 @@ class CombClassifier(torch.nn.Module):
         import numpy as np
         centers = torch.tensor(LogarithmicFilterbank(
             np.linspace(0, combnet.SAMPLE_RATE // 2, combnet.N_FFT//2+1),
-            num_bands=12,
+            num_bands=24,
             fmin=65,
             fmax=2100,
             unique_filters=True
@@ -109,8 +109,10 @@ class CombClassifier(torch.nn.Module):
                 **comb_kwargs
             ),
         )
-        if len(comb_kwargs) == 0:
+        if 'min_freq' not in comb_kwargs:
             self.filters[0].f.data = centers[:n_filters, None]
+            if 'alpha' in comb_kwargs and comb_kwargs['alpha'] < 0:
+                self.filters[0].f.data *= 2
         # if static_filters:
         #     # DEBUG
         #     # self.filters[0] = comb_fn(1, 2)
@@ -123,7 +125,8 @@ class CombClassifier(torch.nn.Module):
         # self.filters[0].f.data *= 2
 
         self.train()
-        activation = torch.nn.ReLU
+        # activation = torch.nn.ReLU
+        activation = torch.nn.ELU
 
         self.layers = torch.nn.Sequential(*([
             torch.nn.Conv2d(1, 8, (5, 5), (1, 1), (2, 2)),
@@ -165,8 +168,9 @@ class CombClassifier(torch.nn.Module):
         # features = torch.log(1+features)
         features = self.filters(audio)
         # features = torch.log(1+features)
-        features = features / abs(features).max()
-        features = features * 200
+        # features = features / abs(features).max()
+        # features = features * 200
+        # return torch.log(1+features)
         return features
 
     def parameter_groups(self):

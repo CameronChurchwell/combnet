@@ -1,3 +1,5 @@
+import json
+import shutil
 import torchutil
 import requests
 import combnet
@@ -31,6 +33,8 @@ def datasets(datasets=combnet.DATASETS):
         penn.data.download.datasets(['ptdb'])
     if 'mdb' in datasets:
         penn.data.download.datasets(['mdb'])
+    if 'maestro' in datasets:
+        maestro()
 
 
 def giantsteps():
@@ -116,3 +120,34 @@ def giantsteps_mtg():
             audio, sr = torchaudio.load(mp3_data)
         torchaudio.save(wav_file, audio, sr)
         time.sleep(0.5) #TODO investigate if this is necessary
+
+
+def maestro(num_files = 10):
+    data_dir = combnet.DATA_DIR / 'maestro'
+    data_dir.mkdir(exist_ok=True, parents=True)
+
+    # print('Downloading Maestro MIDI data...')
+    # url = 'https://storage.googleapis.com/magentadata/datasets/maestro/v3.0.0/maestro-v3.0.0-midi.zip'
+    # torchutil.download.zip(url, data_dir)
+    # print('Download complete, synthesizing select audio')
+
+    source_dir = data_dir / 'maestro-v3.0.0'
+
+    with open(source_dir / 'maestro-v3.0.0.json', 'r') as f:
+        metadata = json.load(f)
+
+    midi_files = metadata['midi_filename']
+    midi_files = {int(k): v for k, v in midi_files.items()}
+    midi_files = [midi_files[i] for i in range(0, num_files)] # convert to list
+
+    select_midi_files = []
+    for i, midi_file in enumerate(midi_files):
+        new_filename = data_dir/f'{i:04d}.midi'
+        shutil.copy(source_dir/midi_file, new_filename)
+        select_midi_files.append(new_filename)
+
+    for midi_file in torchutil.iterator(select_midi_files, 'Synthesizing midi', total=len(select_midi_files)):
+        audio_file = data_dir / f'{midi_file.stem}.wav'
+        label_file = data_dir / f'{midi_file.stem}-labels.pt'
+        # combnet.data.synthesize.from_midi_to_wav(midi_file, audio_file, instrument=1)
+        combnet.data.synthesize.from_midi_to_labels(midi_file, label_file)

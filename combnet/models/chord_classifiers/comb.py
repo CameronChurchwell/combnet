@@ -105,15 +105,6 @@ class CombClassifier(torch.nn.Module):
                 1, n_filters, sr=combnet.SAMPLE_RATE,
                 **comb_kwargs
             )
-        # centers = None
-        # import numpy as np
-        # centers = torch.tensor(LogarithmicFilterbank(
-        #     np.linspace(0, combnet.SAMPLE_RATE // 2, combnet.N_FFT//2+1),
-        #     num_bands=12,
-        #     fmin=65,
-        #     fmax=2100,
-        #     unique_filters=True
-        # ).center_frequencies, dtype=torch.float32)
         n_classes = len(combnet.CLASS_MAP)
         print(n_filters)
         self.layers = torch.nn.Sequential(
@@ -126,8 +117,6 @@ class CombClassifier(torch.nn.Module):
             torch.nn.Softmax(dim=1),
         )
         self.train()
-        # self.layers[0].f.data = centers[:n_filters, None]
-        # self.layers = torch.linspace(200, 500, self.layers[0].f.data.shape[0])[:, None]
 
     def parameter_groups(self):
         groups = {}

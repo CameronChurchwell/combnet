@@ -6,6 +6,7 @@ from pathlib import Path
 
 import torch
 import torchutil
+import torchaudio
 
 import combnet
 
@@ -65,8 +66,12 @@ def datasets(
             continue
 
         output = {
-            file: f'{Path(str(file.parent).replace("/datasets/", "/cache/"))}/{file.stem}' + '-{}.pt'
+            file: f'{combnet.CACHE_DIR / dataset}/{file.stem}' + '-{}.pt'
             for _, _, files in dataloader for file in files}
+
+        # output = {
+        #     file: f'{Path(str(file.parent).replace("/datasets/", "/cache/"))}/{file.stem}' + '-{}.pt'
+        #     for _, _, files in dataloader for file in files}
         from_dataloader(
             dataloader,
             features,
@@ -162,15 +167,33 @@ def from_dataloader(loader, features, output, num_workers=0, gpu=None):
                     # Get length in frames
                     frame_lengths = lengths // combnet.HOPSIZE
 
+
                     # Get output filenames
                     filenames = []
-                    for file in audio_files:
-                        output_file = output[file]
-                        if '{}' in output_file:
-                            filenames.append(
-                                output_file.format(feature))
-                        else:
+                    if feature == 'highpass_audio':
+                        for file in audio_files:
+                            output_file = output[file]
+                            if '{}' in output_file:
+                                output_file = output_file.format(feature)
+                            output_file = Path(output_file)
+                            output_file = output_file.parent / (output_file.stem + '.wav')
                             filenames.append(output_file)
+                    else:
+                        for file in audio_files:
+                            output_file = output[file]
+                            if '{}' in output_file:
+                                filenames.append(
+                                    output_file.format(feature))
+                            else:
+                                filenames.append(output_file)
+
+                    if feature == 'highpass_audio':
+                        for output_audio, output_file in zip(
+                            outputs.cpu(),
+                            filenames
+                        ):
+                            torchaudio.save(output_file, output_audio, combnet.SAMPLE_RATE)
+                        continue
 
                     if num_workers == 0:
 
