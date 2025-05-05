@@ -1,6 +1,7 @@
 import torchutil
 import combnet
 from .chords import chords
+from .notes import notes
 import fluidsynth
 import pretty_midi
 from functools import lru_cache
@@ -19,6 +20,8 @@ def datasets(datasets=combnet.DATASETS):
     """Synthesize datasets"""
     if 'chords' in datasets:
         chords()
+    if 'notes' in datasets:
+        notes()
 
 ###############################################################################
 # Utilities
@@ -36,77 +39,86 @@ def get_softsynth_file():
     assert sf.exists()
     return sf
 
-@lru_cache
+# Seems to be that state doesn't reset
+# Eventually you get errors related to polyphony...
+# So for now I won't cache this
+# @lru_cache
 def get_synth():
     return fluidsynth.Synth(samplerate=combnet.SAMPLE_RATE)
 
-@lru_cache
-def get_softsynth():
-    return get_synth().sfload(str(get_softsynth_file()))
+# And apparently there are issues if you try to select a program loaded by a different synth object...
+# @lru_cache
+def get_softsynth(synth):
+    return synth.sfload(str(get_softsynth_file()))
 
-def get_instrument(instrument=1):
-    fl = get_synth()
-    soundfont = get_softsynth()
-    fl.program_select(0, soundfont, 0, instrument)
-    return fl
+# def get_instrument(instrument=1):
+#     fl = get_synth()
+#     soundfont = get_softsynth(synth=fl)
+#     fl.program_select(0, soundfont, 0, instrument)
+#     return fl
 
 def from_midi_to_wav(
     midi_file,
     wav_file,
     instrument=1,
-    seconds=30
+    # seconds=30
 ):
-    fl = get_instrument(instrument)
+    # fl = get_instrument(instrument)
+    fl = get_synth()
+    soundfont = get_softsynth(synth=fl)
+    fl.program_select(0, soundfont, 0, instrument)
     fl.play_midi_file(str(midi_file))
 
-    audio = fl.get_samples(combnet.SAMPLE_RATE*seconds)[::2].astype('float32')
+    pm = pretty_midi.PrettyMIDI(str(midi_file))
+    n_samples = int(pm.get_end_time()*combnet.SAMPLE_RATE)
+
+    audio = fl.get_samples(n_samples)[::2].astype('float32')
     audio = torch.tensor(audio)
     audio /= abs(audio).max() # normalize to [-1, 1]
     if audio.dim() == 1:
         audio = audio[None]
     torchaudio.save(wav_file, audio, sample_rate=combnet.SAMPLE_RATE)
+    # I'll leave these in just in case...
     fl.play_midi_stop()
     fl.router_clear()
     fl.all_sounds_off(0)
     fl.get_samples(combnet.SAMPLE_RATE*10)
+    # If we can't cache these, best next thing is to clean up
+    fl.sfunload(soundfont)
+    fl.delete()
 
 def from_midi_to_labels(
     midi_file,
-    label_file,
-    seconds=30,
-    hopsize=combnet.HOPSIZE
+    label_file
 ):
-    enharmonic_map = {
-        'A#': 'Bb',
-        'B#': 'C',
-        'C#': 'Db',
-        'D#': 'Eb',
-        'E#': 'F',
-        'F#': 'Gb',
-        'G#': 'Ab',
-    }
+    # enharmonic_map = {
+    #     'A#': 'Bb',
+    #     'B#': 'C',
+    #     'C#': 'Db',
+    #     'D#': 'Eb',
+    #     'E#': 'F',
+    #     'F#': 'Gb',
+    #     'G#': 'Ab',
+    # }
+    # ALL_NOTES = ["C", "F", "Bb", "Eb", "Ab", "Db", "Gb", "B", "E", "A", "D", "G"]
     pm = pretty_midi.PrettyMIDI(str(midi_file))
-    n_frames = ((seconds * combnet.SAMPLE_RATE) - combnet.WINDOW_SIZE) // combnet.HOPSIZE + 1
-    offset_to_center = combnet.WINDOW_SIZE // 2 // combnet.SAMPLE_RATE
-    # time_steps =  
-    breakpoint()
-    # time_steps = np.linspace(, seconds, n_frames)
-    ALL_NOTES = ["C", "F", "Bb", "Eb", "Ab", "Db", "Gb", "B", "E", "A", "D", "G"]
-    frames = []
-    for t in time_steps:
-        frame_notes = np.zeros(len(ALL_NOTES))
-        assert (len(pm.instruments) == 1), len(pm.instruments)
-        for instrument in pm.instruments:
-            for note in instrument.notes:
-                if note.start <= t < note.end: # this is a bit naïve
-                    name_with_octave = pretty_midi.note_number_to_name(note.pitch)
-                    name = name_with_octave.rstrip('0123456789').upper()
-                    name = enharmonic_map[name] if name in enharmonic_map else name
-                    index = ALL_NOTES.index(name)
-                    frame_notes[index] = 1
-        frames.append(frame_notes[:, None])
-    labels = np.concatenate(frames, axis=1)
-    labels = torch.tensor(labels)
-    breakpoint()
+    assert (len(pm.instruments) == 1), len(pm.instruments)
+    # n_frames = ((seconds * combnet.SAMPLE_RATE) - combnet.WINDOW_SIZE) // combnet.HOPSIZE + 1
+    sr = combnet.SAMPLE_RATE
+    assert sr % 5 == 0
+    ws = sr // 5
+    hs = sr // 10
+    # import math
+    # divisor = math.gcd(math.gcd(sr, ws), hs)
+    # sr //= divisor
+    # ws //= divisor
+    # hs //= divisor
+    # hs = sr//(combnet.SAMPLE_RATE//combnet.HOPSIZE)
+    # sr = combnet.SAMPLE_RATE
+    # ws = combnet.WINDOW_SIZE
+    # hs = combnet.HOPSIZE
+    chroma = (torch.tensor(pm.get_chroma(sr)) > 0).to(torch.float32)
+    chroma = torch.nn.functional.pad(chroma, (ws//2, ws//2))
+    labels = torch.nn.functional.max_pool1d(chroma, ws, hs).to(torch.float32)
     torch.save(labels, label_file)
 

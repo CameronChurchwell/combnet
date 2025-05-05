@@ -1,5 +1,5 @@
 import torch
-
+import combnet
 
 ###############################################################################
 # Dataloader
@@ -37,6 +37,20 @@ class Collate():
             # Pack lengths
             elif feature == 'length':
                 batch_values.append(torch.tensor(values))
+
+            # Need to make sure that labels are padded with combnet.MASK_INDEX
+            elif feature == 'labels':
+                if values[0].dim() == 0: #assume all of them will have dim()==0
+                    batch_values.append(torch.tensor(values))
+                else:
+                    max_length = max([label.shape[-1] for label in values])
+                    padded_labels = torch.full(
+                        (batch_size,) + values[0].shape[:-1] + (max_length,),
+                        combnet.MASK_INDEX,
+                        dtype=values[0].dtype)
+                    for i, latent in enumerate(values):
+                        padded_labels[i, ..., :latent.shape[-1]] = latent
+                    batch_values.append(padded_labels)
 
             # Pack input audio representation
             #TODO this is weird, values will always be a tuple...

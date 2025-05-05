@@ -119,6 +119,7 @@ class FusedComb1d(torch.nn.Module):
         window_size=None,
         reduction='max',
         stride=None,
+        last_stride=True, # include last partial stride
         min_freq=None,
         max_freq=None,
         min_bin=None,
@@ -149,6 +150,8 @@ class FusedComb1d(torch.nn.Module):
             stride = combnet.HOPSIZE
         self.window_size = window_size
         self.stride = stride
+
+        self.last_stride = last_stride
 
         self.sr = sr
 
@@ -256,7 +259,7 @@ class FusedComb1d(torch.nn.Module):
             f = self.f.to(d)
         # if self.training:
         if self.reduction == 'max':
-            return self.comb_fn(
+            out = self.comb_fn(
                 x,
                 f,
                 self.a.to(d),
@@ -267,10 +270,14 @@ class FusedComb1d(torch.nn.Module):
             ) + self.b.to(d)
         elif self.reduction == 'sum':
             y = self.comb_fn(x, f, self.a.to(d), self.sr)
-            return torch.nn.functional.avg_pool1d(y, self.window_size, self.stride) * self.window_size
+            out = torch.nn.functional.avg_pool1d(y, self.window_size, self.stride) * self.window_size
         elif self.reduction == 'mean':
             y = self.comb_fn(x, f, self.a.to(d), self.sr)
-            return torch.nn.functional.avg_pool1d(y, self.window_size, self.stride)
+            out = torch.nn.functional.avg_pool1d(y, self.window_size, self.stride)
+        if not self.last_stride:
+            out_length = (x.shape[-1] - self.window_size) // self.stride
+            out = out[..., :out_length]
+        return out
         # else: # TODO Debug
         #     with torch.no_grad():
         #         return self.comb_fn(x, f, self.a.to(d), self.sr, self.window_size, self.stride) + self.b.to(d)

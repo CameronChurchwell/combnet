@@ -92,7 +92,7 @@ class Unsqueeze(torch.nn.Module):
 
 
 class CombClassifier(torch.nn.Module):
-    def __init__(self, n_filters=12, fused_comb_fn='FusedComb1d', n_conv_layers=5, comb_kwargs={}):
+    def __init__(self, n_filters=12, fused_comb_fn='FusedComb1d', n_conv_layers=5, linear_channels=None, comb_kwargs={}):
         super().__init__()
         fused_comb_fn = getattr(combnet.modules, fused_comb_fn)
         centers = None
@@ -128,6 +128,9 @@ class CombClassifier(torch.nn.Module):
         # activation = torch.nn.ReLU
         activation = torch.nn.ELU
 
+        if linear_channels is None:
+            linear_channels = n_filters * 8
+
         self.layers = torch.nn.Sequential(*([
             torch.nn.Conv2d(1, 8, (5, 5), (1, 1), (2, 2)),
             activation(),
@@ -141,7 +144,7 @@ class CombClassifier(torch.nn.Module):
             Permute(0, 2, 1),
             # Permute(0, 1, 3, 2),
 
-            torch.nn.Linear(n_filters * 8, 48),
+            torch.nn.Linear(linear_channels, 48),
             activation(),
 
             Permute(0, 2, 1),
@@ -171,12 +174,62 @@ class CombClassifier(torch.nn.Module):
         # features = features / abs(features).max()
         # features = features * 200
         # return torch.log(1+features)
+        if combnet.COMB_ACTIVATION is not None:
+            features = combnet.COMB_ACTIVATION(features)
         return features
 
     def parameter_groups(self):
         groups = {}
         groups['f0'] = [self.filters[0].f]
         groups['main'] = list(self.layers.parameters()) #+ [self.filters[0].a] + [self.filters[0].g]
+        return groups
+
+    def forward(self, audio):
+        features = self._extract_features(audio)
+        return self.layers(features.unsqueeze(1))
+
+
+class CombLinearClassifier(CombClassifier):
+    def __init__(self, n_filters=1024, n_input_channels=64, fused_comb_fn='FusedComb1d', n_conv_layers=5, comb_kwargs={}, linear_bias=True, linear_init=None):
+        super().__init__(
+            n_filters=n_filters,
+            fused_comb_fn=fused_comb_fn,
+            n_conv_layers=n_conv_layers,
+            linear_channels=n_input_channels*8, # because n_filters is not the input size to the model, n_input_channels is.
+            comb_kwargs=comb_kwargs,
+        )
+        # self.layers[0] = torch.nn.Conv2d(1, 8, (5, 5), (1, 1), (2, 2))
+        self.linear = torch.nn.Conv1d(n_filters, n_input_channels, 1, bias=linear_bias)
+        if linear_init == 'identity':
+            assert n_filters == n_input_channels
+            self.linear.weight.data = torch.eye(n_input_channels).to(self.linear.weight.device)[..., None]
+
+    # def to(self, device):
+    #     self.window = self.window.to(device)
+    #     self.filters = self.filters.to(device)
+    #     return super().to(device)
+
+    def _extract_features(self, audio):
+        # features = self.filters @ spectrogram
+        # features = torch.log(1+features)
+        features = self.filters(audio)
+        features = self.linear(features)
+
+        # features = torch.log(1+features)
+        # features = features / abs(features).max()
+        # features = features * 200
+        # return torch.log(1+features)
+        if combnet.COMB_ACTIVATION is not None:
+            features = combnet.COMB_ACTIVATION(features)
+        else:
+            features = torch.nn.functional.sigmoid(features)
+        return features
+
+    def parameter_groups(self):
+        groups = {}
+        groups['f0'] = [self.filters[0].f]
+        groups['main'] = list(self.layers.parameters()) #+ [self.filters[0].a] + [self.filters[0].g
+        groups['filters'] = list(self.linear.parameters())
         return groups
 
     def forward(self, audio):

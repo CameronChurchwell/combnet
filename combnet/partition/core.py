@@ -1,4 +1,5 @@
 import json
+import os
 import random
 
 from pathlib import Path
@@ -20,6 +21,15 @@ def datasets(datasets=combnet.DATASETS, exclude_pattern=None):
         if dataset in ['ptdb', 'mdb']:
             penn.partition.dataset(dataset)
             continue
+
+        # Clear lengths cache
+        lengths_files = (combnet.CACHE_DIR / dataset).glob('*-lengths.json')
+        for lf in lengths_files:
+            os.unlink(lf)
+
+        # Use maestro default split
+        if dataset == 'maestro': continue
+
 
         # Random seed
         random.seed(combnet.RANDOM_SEED)

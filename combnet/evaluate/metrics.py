@@ -10,37 +10,41 @@ import combnet
 
 class Metrics():
     def __init__(self):
-        self.accuracy = torchutil.metrics.Accuracy()
-        self.loss = Loss()
-        self.mirex_weighted = MIREX_Weighted()
-        self.categorical = CategoricalAccuracy()
+        # self.accuracy = torchutil.metrics.Accuracy()
+        # self.loss = Loss()
+        # self.mirex_weighted = MIREX_Weighted()
+        # self.categorical = CategoricalAccuracy()
+        # self.perclass = PerClassBinaryAccuracy()
         metrics = {
             'accuracy': torchutil.metrics.Accuracy,
             'loss': Loss,
             'mirex_weighted': MIREX_Weighted,
             'categorical':  CategoricalAccuracy,
+            'perclass': PerClassBinaryAccuracy,
+            'hamming': HammingLoss
         }
         self.metrics = {name:metrics[name]() for name in combnet.METRICS}
         self.reset()
 
     def __call__(self):
-        multi_metrics = ['categorical']
+        multi_metrics = ['categorical', 'perclass']
         results = {name: metric() for name, metric in self.metrics.items() if name not in multi_metrics}
         if 'categorical' in self.metrics:
             results = results | self.metrics['categorical']()
+        if 'perclass' in self.metrics:
+            results = results | self.metrics['perclass']()
         return results
 
     def reset(self):
         for metric in self.metrics.values():
             metric.reset()
 
-    def update(
-        self, predicted_logits, target_indices):
-        predicted_indices = predicted_logits.argmax(1)
+    def update(self, predicted_logits, target_indices):
         for name, metric in self.metrics.items():
             if name in ['accuracy', 'mirex_weighted']:
+                predicted_indices = predicted_logits.argmax(1)
                 metric.update(predicted_indices, target_indices)
-            elif name in ['loss', 'categorical']:
+            elif name in ['loss', 'categorical', 'perclass', 'hamming']:
                 metric.update(predicted_logits, target_indices)
             else:
                 raise ValueError(f'Unable to determine input for metric: {name}')
@@ -171,3 +175,110 @@ class MIREX_Weighted(torchutil.metrics.Metric):
                0.5 * r_fifth + \
                0.3 * r_relative + \
                0.2 * r_parallel
+
+
+class PerClassBinaryAccuracy(torchutil.metrics.Metric):
+
+    def reset(self):
+        self.counts = 0
+        self.all_correct = 0
+        self.correct = None
+        self.tp = None
+        self.tn = None
+        self.fp = None
+        self.fn = None
+
+    def update(self, logits, target):
+        # batch x classes x time -> batch*time x classes
+        logits = logits.permute(0,2,1).flatten(0, 1)
+        target = target.permute(0,2,1).flatten(0, 1)
+        mask = (target != combnet.MASK_INDEX).any(1)
+        try:
+            logits = logits[mask]
+            target = target[mask]
+        except:
+            breakpoint()
+        if self.correct is None:
+            self.correct = torch.zeros(logits.shape[1]).to(target.device)
+            self.tp = torch.zeros(logits.shape[1]).to(target.device)
+            self.tn = torch.zeros(logits.shape[1]).to(target.device)
+            self.fp = torch.zeros(logits.shape[1]).to(target.device)
+            self.fn = torch.zeros(logits.shape[1]).to(target.device)
+        probs = torch.sigmoid(logits)
+        preds = probs > 0.5
+        correct = preds == target
+        true_positives = (preds == 1) & (target == 1)
+        true_negaitves = (preds == 0) & (target == 0)
+        false_negatives = (preds == 0) & (target == 1)
+        false_positives = (preds == 1) & (target == 0) 
+        self.tp += true_positives.sum(0)
+        self.tn = true_negaitves.sum(0)
+        self.fn += false_negatives.sum(0)
+        self.fp += false_positives.sum(0)
+        # all correct
+        self.all_correct += correct.all(1).sum()
+        # per class correct
+        correct = correct.sum(0)
+        self.correct += correct
+        self.counts += target.shape[0]
+
+    def __call__(self):
+        result = {f'PerClassBinaryAccuracy/{idx}': (self.correct[idx]/self.counts).item() for idx in range(0, len(self.correct))}
+
+        precision = self.tp / (self.tp + self.fp)
+        result |= {f'PerClassPrecision/{idx}': (precision[idx]).item() for idx in range(0, len(precision))}
+
+        recall = self.tp / (self.tp + self.fn)
+        result |= {f'PerClassRecall/{idx}': (recall[idx]).item() for idx in range(0, len(recall))}
+
+        F1 = 2*precision*recall / (precision+recall)
+        result |= {f'PerClassF1/{idx}': (F1[idx]).item() for idx in range(0, len(F1))}
+
+        macro_precision = precision.mean()
+        result['MacroPrecision'] = macro_precision.item()
+
+        macro_recall = recall.mean()
+        result['MacroRecall'] = macro_recall.item()
+
+        macro_F1 = F1.mean()
+        result['MacroF1'] = macro_F1.item()
+
+        tp = self.tp.sum()
+        tn = self.tn.sum()
+        fp = self.fp.sum()
+        fn = self.fn.sum()
+
+        micro_precision = tp / (tp + fp)
+        result['MicroPrecision'] = micro_precision.item()
+
+        micro_recall = tp / (tp + fn)
+        result['MicroRecall'] = micro_recall.item()
+
+        micro_F1 = 2*micro_precision*micro_recall / (micro_precision+micro_recall)
+        result['MicroF1'] = micro_F1.item()
+
+        result['TotalPerClassAcuracy'] = (self.correct.sum()/(self.counts*len(self.correct))).item()
+        result['FrameAccuracy'] = (self.all_correct/self.counts).item()
+        return result
+    
+class HammingLoss(torchutil.metrics.Metric):
+
+    def reset(self):
+        self.loss = 0
+        self.count = 0
+
+    def update(self, logits, target):
+        # batch x classes x time -> batch*time x classes
+        logits = logits.permute(0,2,1).flatten(0, 1)
+        target = target.permute(0,2,1).flatten(0, 1)
+        mask = (target != combnet.MASK_INDEX).any(1)
+        logits = logits[mask]
+        target = target[mask]
+        probs = torch.sigmoid(logits)
+        preds = probs > 0.5
+        loss = (preds != target).sum(1)
+        self.loss += loss.sum()
+        self.count += target.shape[0]
+
+    def __call__(self):
+        return (self.loss / self.count).item()

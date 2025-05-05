@@ -41,6 +41,11 @@ class Dataset(torch.utils.data.Dataset):
             for index in range(0, len(self)):
                 self.memory_cache.append(self[index])
         self.memory_caching = memory_caching
+        if self.metadata.name == 'timit':
+            speakers_file = self.metadata.data_dir / 'speakers.json'
+            with open (speakers_file, 'r') as f:
+                speakers = json.load(f)
+            self.speakers = speakers
 
     def __getitem__(self, index):
         """Retrieve the indexth item"""
@@ -60,6 +65,11 @@ class Dataset(torch.utils.data.Dataset):
                 audio = combnet.load.audio(self.audio_files[index])
                 audio = audio.mean(0, keepdim=True)
                 feature_values.append(audio)
+
+            # elif feature == 'audio-tensor':
+            #     audio = torch.load(self.audio_files[index].with_suffix('.pt'))
+            #     audio = audio.mean(0, keepdim=True)
+            #     feature_values.append(audio)
 
             elif feature == 'highpass_audio':
                 audio = combnet.load.audio(self.cache / (stem + '-highpass_audio.wav'))
@@ -128,8 +138,18 @@ class Dataset(torch.utils.data.Dataset):
                     file = self.metadata.data_dir / (self.stems[index] + '.chord')
                     with open(file, 'r') as f:
                         feature_values.append(torch.tensor(combnet.CLASS_MAP[f.read()]))
+                elif self.metadata.name in ['timit']:
+                    speaker_id = self.stems[index].split('-')[0]
+                    feature_values.append(torch.tensor(combnet.CLASS_MAP[speaker_id]))
                 else:
                     raise ValueError(f'class is not a supported feature for dataset {self.metadata.name}')
+
+            elif feature == 'labels':
+                if self.metadata.name in ['maestro', 'notes']:
+                    file = self.metadata.data_dir / (self.stems[index] + '-labels.pt')
+                    feature_values.append(torch.load(file))
+                else:
+                    raise ValueError(f'labels is not a supported feature for dataset {self.metadata.name}')
 
             # Add length
             elif feature == 'length':
@@ -243,15 +263,18 @@ class Metadata:
                     json.dump(lengths, file)
 
         # Match ordering
-        (
-            self.audio_files,
-            self.stems,
-            self.lengths
-            ) = zip(*[
-            (file, stem, lengths[stem])
-            for file, stem in zip(self.audio_files, self.stems)
-            if stem in lengths
-        ])
+        try:
+            (
+                self.audio_files,
+                self.stems,
+                self.lengths
+                ) = zip(*[
+                (file, stem, lengths[stem])
+                for file, stem in zip(self.audio_files, self.stems)
+                if stem in lengths
+            ])
+        except ValueError:
+            raise ValueError("You probably have to clear the lengths cache file")
 
     def __len__(self):
         return len(self.stems)

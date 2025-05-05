@@ -58,6 +58,16 @@ def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
     train_loader = combnet.data.loader(dataset, 'train', gpu=gpu)
     valid_loader = combnet.data.loader(dataset, 'valid', gpu=gpu)
 
+    # _train_loader = combnet.data.loader(dataset, 'train', gpu=gpu)
+    # valid_loader = combnet.data.loader(dataset, 'valid', gpu=gpu)
+    # def tl():
+    #     batch = next(iter(_train_loader))
+    #     batch = [b.to(device) if isinstance(b, torch.Tensor) else b for b in batch]
+    #     while True:
+    #         yield batch
+
+    # train_loader = tl()
+
     #################
     # Create models #
     #################
@@ -139,7 +149,7 @@ def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
     # Setup progress bar
     progress = torchutil.iterator(
         range(step, combnet.STEPS),
-        f'Training {combnet.CONFIG}',
+        f'Training {combnet.CONFIG}, epoch={epoch}',
         step,
         combnet.STEPS)
 
@@ -273,6 +283,7 @@ def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
 
         # Update epoch
         epoch += 1
+        progress.set_description(f'Training {combnet.CONFIG}, epoch={epoch}')
 
         if scheduler is not None:
             scheduler.step()
@@ -383,4 +394,10 @@ def loss(logits, target):
     """Compute loss function"""
     # if isinstance(target, tuple):
     #     target = torch.tensor(target).to(logits.device)
-    return torch.nn.functional.cross_entropy(logits, target)
+    if combnet.LOSS_FUNCTION is not None:
+        # try:
+        return combnet.LOSS_FUNCTION(logits, target)
+        # except:
+        #     breakpoint()
+    else: # classification
+        return torch.nn.functional.cross_entropy(logits, target)

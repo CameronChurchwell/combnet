@@ -17,6 +17,8 @@ if TYPE_CHECKING:
 else:
     from combnet import penn
 
+from . import timit
+
 ###############################################################################
 # Download datasets
 ###############################################################################
@@ -35,6 +37,9 @@ def datasets(datasets=combnet.DATASETS):
         penn.data.download.datasets(['mdb'])
     if 'maestro' in datasets:
         maestro()
+    if 'timit' in datasets:
+        timit.download()
+        timit.format()
 
 
 def giantsteps():
@@ -122,7 +127,8 @@ def giantsteps_mtg():
         time.sleep(0.5) #TODO investigate if this is necessary
 
 
-def maestro(num_files = 10):
+def maestro(max_files = None):
+    SAMPLE_RATE = 22_050
     data_dir = combnet.DATA_DIR / 'maestro'
     data_dir.mkdir(exist_ok=True, parents=True)
 
@@ -136,18 +142,45 @@ def maestro(num_files = 10):
     with open(source_dir / 'maestro-v3.0.0.json', 'r') as f:
         metadata = json.load(f)
 
+    titles = metadata['canonical_title']
+    titles = {int(k): v for k, v in titles.items()}
+    titles = [titles[i] for i in range(0, len(titles))] # convert to list
+
+    selected_indices = []
+    selected_titles = set()
+    for i, title in enumerate(titles):
+        title = title.lower()
+        if title not in selected_titles:
+            selected_indices.append(i)
+            selected_titles.add(title)
+
     midi_files = metadata['midi_filename']
     midi_files = {int(k): v for k, v in midi_files.items()}
-    midi_files = [midi_files[i] for i in range(0, num_files)] # convert to list
+    midi_files = [midi_files[i] for i in selected_indices[:max_files]] # convert to list
+
+    splits = metadata['split']
+    splits = {int(k): v for k, v in splits.items()}
+    splits = [splits[i] for i in selected_indices[:max_files]] # convert to list
 
     select_midi_files = []
-    for i, midi_file in enumerate(midi_files):
+    partition = {'train': [], 'valid': [], 'test': []}
+    for i, (midi_file, split) in enumerate(zip(midi_files, splits)):
+        if split == 'train':
+            partition['train'].append(f'{i:04d}')
+        if split == 'validation':
+            partition['valid'].append(f'{i:04d}')
+        if split == 'test':
+            partition['test'].append(f'{i:04d}')
         new_filename = data_dir/f'{i:04d}.midi'
         shutil.copy(source_dir/midi_file, new_filename)
         select_midi_files.append(new_filename)
 
+    partition_file = combnet.PARTITION_DIR / 'maestro.json'
+    with open(partition_file, 'w+') as f:
+        json.dump(partition, f)
+
     for midi_file in torchutil.iterator(select_midi_files, 'Synthesizing midi', total=len(select_midi_files)):
         audio_file = data_dir / f'{midi_file.stem}.wav'
         label_file = data_dir / f'{midi_file.stem}-labels.pt'
-        # combnet.data.synthesize.from_midi_to_wav(midi_file, audio_file, instrument=1)
+        combnet.data.synthesize.from_midi_to_wav(midi_file, audio_file, instrument=1)
         combnet.data.synthesize.from_midi_to_labels(midi_file, label_file)

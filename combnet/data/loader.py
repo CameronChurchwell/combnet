@@ -26,4 +26,5 @@ def loader(
         shuffle='train' in partition or 'valid' in partition if partition is not None else False,
         num_workers=combnet.NUM_WORKERS if num_workers is None else num_workers,
         pin_memory=(gpu is not None),
-        collate_fn=collate)
+        collate_fn=collate
+    )
