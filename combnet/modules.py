@@ -17,7 +17,7 @@ class Comb1d(torch.nn.Module):
         self,
         in_channels,
         out_channels,
-        alpha=.6,
+        alpha=.9,
         gain=None,
         use_bias = False,
         learn_alpha=False,
@@ -25,23 +25,72 @@ class Comb1d(torch.nn.Module):
         learn_gain=False,
         sr=16000,
         comb_fn=None,
+        min_freq=None,
+        max_freq=None,
+        min_bin=None,
+        max_bin=None,
+        n_taps=10,
     ):
         super().__init__()
-
+        self.n_taps = n_taps
         if comb_fn is None:
-            self.comb_fn = combnet.filters.fractional_comb_fir_multitap_lerp_explicit_triton_fused
-            # self.comb_fn = combnet.filters.fractional_comb_fir_multitap_lerp_explicit
+            self.comb_fn = combnet.filters.fractional_comb_fir_multitap_lerp_explicit_triton
         elif isinstance(comb_fn, str):
-            raise NotImplementedError("TODO implement this lookup")
+            comb_fn = getattr(combnet.filters, comb_fn)
+            self.comb_fn = comb_fn
         else:
             self.comb_fn = comb_fn
-
         self.sr = sr
-
         self.d = (out_channels,in_channels)
         self.la = learn_alpha
+        scaling_parameters = [min_freq, max_freq, min_bin, max_bin]
+        if min_freq is not None and max_freq is not None: # Is this a good way to do this?
+            if min_bin is not None and max_bin is not None:
+                assert True not in [p is None for p in scaling_parameters]
+                nbins = max_bin-min_bin
+                fratio = max_freq/min_freq
+                if isinstance(alpha, float) and alpha < 0:
+                    import warnings
+                    warnings.warn('using negative alpha scaling function')
+                    @torch.compile
+                    def scaling_function(f: torch.Tensor): # f = output_channels x input_channels
+                        # f = min_freq * (fratio ** ((max_bin * torch.nn.functional.sigmoid(f) - min_bin) / nbins))
+                        s = torch.nn.functional.sigmoid(f)
+                        p = nbins*s+min_bin
+                        o = min_freq * fratio ** ((p-min_bin) / nbins)
+                        return o*2
+                else:
+                    @torch.compile
+                    def scaling_function(f: torch.Tensor): # f = output_channels x input_channels
+                        # f = min_freq * (fratio ** ((max_bin * torch.nn.functional.sigmoid(f) - min_bin) / nbins))
+                        s = torch.nn.functional.sigmoid(f)
+                        p = nbins*s+min_bin
+                        o = min_freq * fratio ** ((p-min_bin) / nbins)
+                        return o
+            else:
+                assert min_bin is None and max_bin is None
+                fratio = max_freq/min_freq
+                @torch.compile
+                def scaling_function(f: torch.Tensor):
+                    s = torch.nn.functional.sigmoid(f)
+                    o = min_freq * fratio ** ((s))
+                    return o
+            self.scaling_function = scaling_function
+        else:
+            self.scaling_function = None
 
-        self.f = torch.nn.Parameter( torch.rand( out_channels, in_channels)*(500-50)+50, requires_grad=True)
+        if self.scaling_function:
+            if combnet.F0_INIT_METHOD == 'random':
+                self.f = torch.nn.Parameter(3*(torch.rand(out_channels, in_channels) * 2 - 1), requires_grad=True)
+            elif combnet.F0_INIT_METHOD == 'equal':
+                assert in_channels == 1 # TODO generalize
+                # self.f = torch.nn.Parameter(torch.linspace(-1, 1, out_channels)[:, None], requires_grad=True)
+                self.f = torch.nn.Parameter(torch.linspace(-3, 3, out_channels)[:, None], requires_grad=True)
+            else:
+                raise ValueError(f'unknown initialization method {combnet.F0_INIT_METHOD}')
+        else:
+            assert combnet.F0_INIT_METHOD == 'random'
+            self.f = torch.nn.Parameter(torch.rand(out_channels, in_channels)*(500-50)+50, requires_grad=True)
 
         if gain is None:
             gain = 1.0
@@ -79,18 +128,29 @@ class Comb1d(torch.nn.Module):
         return regularization, (self.g.clamp(min=0.01) ** 0.5).sum()
         # return torch.tensor(0.0, device=self.f.device), torch.tensor(0.0, device=self.f.device)
 
-    def __call__( self, x):
+    # def forward(self, x):
+    #     return self(x)
+
+    # @torch.compile()
+    def forward(self, x):
         d = x.device
+        if self.scaling_function:
+            f = self.scaling_function(self.f.to(d))
+        else:
+            f = self.f.to(d)
         # return lc_batch_comb(x, self.f.to(d), self.a.to(d), self.sr, self.g.to(d)) + self.b.to(d)
         # return fractional_comb_fir_multitap(x, self.f.to(d), self.a.to(d), self.sr) + self.b.to(d)
         # return fractional_comb_fir_multitap_lerp(x, self.f.to(d), self.a.to(d), self.sr) + self.b.to(d)
         # return fractional_comb_fir_multitap_lerp_explicit(x, self.f.to(d), self.a.to(d), self.sr) + self.b.to(d)
-        if self.training:
-            return self.comb_fn(x, self.f.to(d), self.a.to(d), self.sr) + self.b.to(d)
-        else: # TODO Debug
-            with torch.no_grad():
-                return self.comb_fn(x, self.f.to(d), self.a.to(d), self.sr) + self.b.to(d)
-        # return fractional_comb_fiir(x, self.f.to(d), self.a.to(d), self.sr) + self.b.to(d)
+        # if self.training:
+        out = self.comb_fn(
+            x,
+            f,
+            self.a.to(d),
+            self.sr,
+            n_taps=self.n_taps
+        ) + self.b.to(d)
+        return out
 
 @lru_cache
 def design_fir_highpass(num_taps, cutoff_hz, sample_rate):
@@ -247,7 +307,7 @@ class FusedComb1d(torch.nn.Module):
     #     return self(x)
 
     # @torch.compile()
-    def __call__(self, x):
+    def forward(self, x):
         d = x.device
         # return lc_batch_comb(x, self.f.to(d), self.a.to(d), self.sr, self.g.to(d)) + self.b.to(d)
         # return fractional_comb_fir_multitap(x, self.f.to(d), self.a.to(d), self.sr) + self.b.to(d)

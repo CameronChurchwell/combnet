@@ -7,6 +7,8 @@ import numpy as np
 import torch
 import torchaudio
 
+from random import randint
+
 import combnet
 
 
@@ -36,6 +38,7 @@ class Dataset(torch.utils.data.Dataset):
         self.audio_files = self.metadata.audio_files
         self.lengths = self.metadata.lengths
         self.memory_caching = False
+        self.partition = partition
         if memory_caching:
             self.memory_cache = []
             for index in range(0, len(self)):
@@ -64,6 +67,27 @@ class Dataset(torch.utils.data.Dataset):
             if feature == 'audio':
                 audio = combnet.load.audio(self.audio_files[index])
                 audio = audio.mean(0, keepdim=True)
+                feature_values.append(audio)
+
+            elif feature == 'random-audio-frame':
+                #TODO generalize
+                frame_size = 3200
+                audio = combnet.load.audio(self.audio_files[index])
+                audio = audio.mean(0, keepdim=True)
+                start = randint(0, audio.shape[-1]-frame_size)
+                audio = audio[..., start:start+frame_size]
+                feature_values.append(audio)
+
+            elif feature == 'random-audio-frame-noised':
+                #TODO generalize
+                audio = combnet.load.audio(self.audio_files[index])
+                audio = audio.mean(0, keepdim=True)
+                if self.partition == 'train':
+                    frame_size = 3200
+                    start = randint(0, audio.shape[-1]-frame_size)
+                    audio = audio[..., start:start+frame_size]
+                    random_scalar = (torch.rand(1).squeeze()-0.5)/0.5*0.2
+                    audio *= random_scalar
                 feature_values.append(audio)
 
             # elif feature == 'audio-tensor':

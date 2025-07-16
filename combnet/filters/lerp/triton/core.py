@@ -262,7 +262,7 @@ class _explicit_lerp_triton(torch.autograd.Function):
 
         return None, None, None, dLoss_dl, None
 
-def fractional_comb_fir_multitap_lerp_explicit_triton(x, f0, a, sr):
+def fractional_comb_fir_multitap_lerp_explicit_triton(x, f0, a, sr, n_taps=10):
     if x.dim() == 1: # time
         x = x[None, None]
     elif x.dim() == 2: # channels x time
@@ -285,7 +285,7 @@ def fractional_comb_fir_multitap_lerp_explicit_triton(x, f0, a, sr):
     assert a.dim() == 2 # out_channels x in_channels
 
     l = sr / f0 # out_channels x in_channels
-    n_taps = 10
+    # n_taps = 10
     y = torch.zeros(x.shape[0], f0.shape[0], x.shape[-1], device=x.device, dtype=x.dtype) # batch x out_channels x time
     y = _explicit_lerp_triton.apply(x, y, a, l, n_taps)
     y = y + x.sum(1, keepdims=True)

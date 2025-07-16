@@ -18,11 +18,11 @@ class Unsqueeze(torch.nn.Module):
         return x.unsqueeze(self.dim)
 
 class ConvClassifier(torch.nn.Module):
-    def __init__(self, kernel_size=combnet.WINDOW_SIZE, n_channels=16):
+    def __init__(self, kernel_size=combnet.WINDOW_SIZE, n_channels=16, stride=combnet.HOPSIZE):
         super().__init__()
         n_classes = 12
         self.layers = torch.nn.Sequential(
-            torch.nn.Conv1d(1, n_channels, kernel_size, stride=combnet.HOPSIZE, padding=kernel_size // 2),
+            torch.nn.Conv1d(1, n_channels, kernel_size, stride=stride, padding=kernel_size // 2),
             torch.nn.ELU(),
             # torch.nn.Flatten(1, 2),
             torch.nn.Conv1d(n_channels, n_channels, 1),

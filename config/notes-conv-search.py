@@ -21,13 +21,17 @@ import os
 # RUNS_DIR = Path(__file__).parent.parent / 'runs.notes.conv'
 if hasattr(combnet, 'defaults'):
 
-    channels = [1, 2, 4, 8, 16, 24, 32]
+    channels = [1, 2, 4, 8, 16, 24, 32, 64, 128]
+    kernel_size = [16, 32, 64, 128, 512, 1024, 2048, 4096]
     if os.getenv('COMBNET_NO_SEARCH') is None:
-        CHANNELS, = yapecs.grid_search(
+        CHANNELS, KERNEL_SIZE = yapecs.grid_search(
             Path(__file__).parent / 'notes-conv-search.progress',
-            channels
+            channels,
+            kernel_size
         )
     else:
-        CHANNELS = int(os.getenv('COMBNET_CHANNELS'))
-    MODEL_KWARGS = {'n_channels': CHANNELS}
-    CONFIG += f'-{CHANNELS}'
+        # CHANNELS = int(os.getenv('COMBNET_CHANNELS'))
+        raise NotImplementedError('TODO: fix this later')
+    MODEL_KWARGS = {'n_channels': CHANNELS, 'kernel_size': KERNEL_SIZE}
+    # CONFIG += f'-{CHANNELS}'
+    CONFIG += f'-{CHANNELS}-{KERNEL_SIZE}'

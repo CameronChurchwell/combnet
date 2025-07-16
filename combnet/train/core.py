@@ -332,7 +332,7 @@ def evaluate(
 
     model.eval()
 
-    with torch.no_grad():
+    with torch.inference_mode():
         # Setup evaluation metrics
         metrics = combnet.evaluate.Metrics()
 
@@ -358,6 +358,7 @@ def evaluate(
         # Format results
         scalars = {
             f'{key}/{condition}': value for key, value in metrics().items()}
+        # print(scalars)
 
         # Write to tensorboard
         torchutil.tensorboard.update(directory, step, scalars=scalars)

@@ -5,6 +5,7 @@ import json
 import pypar
 
 import torchutil
+import torchaudio
 
 import combnet
 
@@ -66,8 +67,18 @@ def format():
             continue
         all_speakers.add(speaker)
         out_stem = speaker + '-' + utterance
-        with open(data_directory / (out_stem + '.wav'), 'wb') as file:
+        audio_file = data_directory / (out_stem + '.wav')
+        with open(audio_file, 'wb') as file:
             file.write(sphere_to_wav(sphere_file))
+        label_file = sphere_file.with_suffix('.WRD')
+        with open(label_file, 'r') as file:
+            lines = file.readlines()
+        start_sample = int(lines[0].split()[0])
+        end_sample = int(lines[-1].split()[1])
+        audio, sr = torchaudio.load(audio_file)
+        audio = audio[..., start_sample:end_sample]
+        audio = audio/abs(audio).max()
+        torchaudio.save(audio_file, audio, SAMPLE_RATE)
     with open(data_directory / 'speakers.json', 'w+') as f:
         json.dump(list(sorted(list(all_speakers))), f)
 

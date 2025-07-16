@@ -46,6 +46,40 @@ def datasets(datasets=combnet.DATASETS, exclude_pattern=None):
 
         stems = [f.stem for f in audio_files]
 
+        # TODO this could be cleaned up a bit
+        if dataset == 'timit':
+            speakers_file = combnet.DATA_DIR / 'timit' / 'speakers.json'
+            with open(speakers_file, 'r') as f:
+                speakers = json.load(f)
+
+            speaker_stems = {speaker: [] for speaker in speakers}
+            for stem in stems:
+                speaker = stem.split('-')[0]
+                speaker_stems[speaker].append(stem)
+            # each speaker only has 8 stems...
+            # We want one stem per speaker in valid, and one stem per speaker in test?
+            cutoff = 5
+            train = []
+            valid = []
+            for speaker in speaker_stems.keys():
+                random.shuffle(speaker_stems[speaker])
+                train += speaker_stems[speaker][:cutoff]
+                valid += speaker_stems[speaker][cutoff:]
+            partition = {
+                'train': train,
+                'valid': valid,
+                'test': valid
+            }
+
+            # Save to disk
+            file = combnet.PARTITION_DIR / f'{dataset}.json'
+            file.parent.mkdir(exist_ok=True, parents=True)
+            with open(file, 'w') as file:
+                json.dump(partition, file, indent=4)
+
+            continue
+
+
         random.shuffle(stems)
 
         num_examples = len(stems)

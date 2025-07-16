@@ -74,15 +74,15 @@ class ConvClassifier(torch.nn.Module):
             # "DNN1" as per the original implementation
             torch.nn.LayerNorm(dims.pop(0)),
 
-            torch.nn.Linear(6420, 2048),
+            torch.nn.Linear(6420, 2048, bias=False),
             torch.nn.BatchNorm1d(dims.pop(0)),
             torch.nn.LeakyReLU(0.2),
 
-            torch.nn.Linear(2048, 2048),
+            torch.nn.Linear(2048, 2048, bias=False),
             torch.nn.BatchNorm1d(dims.pop(0)),
             torch.nn.LeakyReLU(0.2),
 
-            torch.nn.Linear(2048, 2048),
+            torch.nn.Linear(2048, 2048, bias=False),
             torch.nn.BatchNorm1d(dims.pop(0)),
             torch.nn.LeakyReLU(0.2),
 

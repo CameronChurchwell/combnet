@@ -33,7 +33,6 @@ class CombClassifier(torch.nn.Module):
                 **comb_kwargs
             )
         n_classes = 12
-        print(n_filters)
         self.layers = torch.nn.Sequential(
             comb,
             torch.nn.ELU(),

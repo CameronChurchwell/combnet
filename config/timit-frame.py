@@ -11,7 +11,8 @@ EVALUATION_DATASETS = ['timit']
 # METRICS = ['accuracy', 'loss', 'categorical']
 METRICS = ['accuracy', 'loss']
 
-FEATURES = ['audio', 'class']
+# FEATURES = ['random-audio-frame', 'class']
+FEATURES = ['random-audio-frame-noised', 'class']
 
 # CHORDS = ["C", "F", "Bb", "Eb"]
 
@@ -36,12 +37,12 @@ def NUM_CLASSES():
 MODEL_MODULE = 'speaker_classifiers'
 
 # Number of steps between saving checkpoints
-CHECKPOINT_INTERVAL = 1_000  # steps
+CHECKPOINT_INTERVAL = 10_000  # steps
 
 # Number of steps between evaluation tensorboard logging
-EVALUATION_INTERVAL = 100  # steps
+EVALUATION_INTERVAL = 1000  # steps
 
 # Number of training steps
-STEPS = 10_000
+STEPS = 50_000
 
-BATCH_SIZE = 8
+BATCH_SIZE = 128

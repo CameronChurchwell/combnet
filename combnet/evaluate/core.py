@@ -15,7 +15,8 @@ import combnet
 def datasets(
     datasets=combnet.EVALUATION_DATASETS,
     checkpoint=combnet.DEFAULT_CHECKPOINT,
-    gpu=None):
+    gpu=None,
+    partitions=['test']):
     """Perform evaluation"""
     with torch.inference_mode():
         device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
@@ -42,9 +43,12 @@ def datasets(
             # Reset dataset metrics
             dataset_metrics.reset()
 
+            # loader = combnet.data.loader(dataset, 'test', features=combnet.FEATURES + ['stem'])
+            loader = combnet.data.loader(dataset, 'test', features=combnet.FEATURES + ['stem'])
+
             # Iterate over test set
             for batch in torchutil.iterator(
-                combnet.data.loader(dataset, 'test', features=combnet.FEATURES + ['stem']),
+                loader,
                 f'Evaluating {combnet.CONFIG} on {dataset}'
             ):
 
@@ -84,3 +88,5 @@ def datasets(
             json.dump(overall, file, indent=4)
         with open(directory / 'granular.json', 'w') as file:
             json.dump(granular, file, indent=4)
+
+        print(overall)
