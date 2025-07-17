@@ -23,10 +23,12 @@ CONFIG: str = 'combnet'
 
 
 # Names of all normal datasets
-DATASETS: List[str] = ['giantsteps', 'giantsteps_mtg', 'ptdb', 'mdb', 'maestro', 'timit']
+# DATASETS: List[str] = ['giantsteps', 'giantsteps_mtg', 'ptdb', 'mdb', 'maestro', 'timit']
+DATASETS: List[str] = ['giantsteps', 'giantsteps_mtg', 'timit']
 
 # Names of all synthetic datasets
-SYNTHETIC_DATASETS: List[str] = ['chords']
+# SYNTHETIC_DATASETS: List[str] = ['chords', 'notes']
+SYNTHETIC_DATASETS: List[str] = ['notes']
 
 @yapecs.ComputedProperty(compute_once=False)
 def ALL_DATASETS() -> List[str]:
@@ -35,7 +37,8 @@ def ALL_DATASETS() -> List[str]:
 # Datasets for evaluation
 EVALUATION_DATASETS: List[str] = ['giantsteps']
 
-FEATURES: List[str] = ['spectrogram', 'highpass_audio']
+# FEATURES: List[str] = ['spectrogram', 'highpass_audio']
+FEATURES: List[str] = ['spectrogram']
 
 INPUT_FEATURES: List[str] = ['spectrogram']
 

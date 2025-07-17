@@ -15,8 +15,7 @@ import combnet
 def datasets(
     datasets=combnet.EVALUATION_DATASETS,
     checkpoint=combnet.DEFAULT_CHECKPOINT,
-    gpu=None,
-    partitions=['test']):
+    gpu=None):
     """Perform evaluation"""
     with torch.inference_mode():
         device = torch.device('cpu' if gpu is None else f'cuda:{gpu}')
