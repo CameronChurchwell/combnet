@@ -28,10 +28,5 @@ STEPS = 100_000
 import torch
 from functools import partial
 OPTIMIZER_FACTORY = partial(torch.optim.Adam, lr=0.0005)
-# OPTIMIZER_FACTORY = partial(torch.optim.AdamW, lr=0.000001, weight_decay=1e-4)
-# OPTIMIZER_FACTORY = partial(torch.optim.AdamW, lr=0.000005, weight_decay=1e-4)
-# OPTIMIZER_FACTORY = partial(torch.optim.SGD, lr=0.0005, momentum=0.9, weight_decay=1e-4)
 
 MODEL_KWARGS = {'features': 'chroma'}
-
-# MODEL_KWARGS = {'n_classes': NUM_CLASSES, 'n_filters': NUM_COMB_FILTERS}

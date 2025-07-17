@@ -16,5 +16,4 @@ PARAM_GROUPS = {
     'main': {'lr': 1e-3},
 }
 
-# MODEL_KWARGS = {'n_channels': 8} # TODO try combnet.HOPSIZE?
-MODEL_KWARGS = {'n_channels': 24} # TODO try combnet.HOPSIZE?
+MODEL_KWARGS = {'n_channels': 24}

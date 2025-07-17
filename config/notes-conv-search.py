@@ -9,16 +9,12 @@ CONFIG = Path(__file__).stem
 
 MODEL_CLASS = 'ConvClassifier'
 
-# BATCH_SIZE = 1
-
-import torch
 PARAM_GROUPS = {
     'main': {'lr': 1e-3},
 }
 
 import combnet
 import os
-# RUNS_DIR = Path(__file__).parent.parent / 'runs.notes.conv'
 if hasattr(combnet, 'defaults'):
 
     channels = [1, 2, 4, 8, 16, 24, 32, 64, 128]
@@ -30,8 +26,6 @@ if hasattr(combnet, 'defaults'):
             kernel_size
         )
     else:
-        # CHANNELS = int(os.getenv('COMBNET_CHANNELS'))
         raise NotImplementedError('TODO: fix this later')
     MODEL_KWARGS = {'n_channels': CHANNELS, 'kernel_size': KERNEL_SIZE}
-    # CONFIG += f'-{CHANNELS}'
     CONFIG += f'-{CHANNELS}-{KERNEL_SIZE}'

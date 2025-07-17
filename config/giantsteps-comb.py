@@ -23,24 +23,12 @@ MODEL_CLASS = 'CombClassifier'
 BATCH_SIZE = 8
 
 import torch
-# from functools import partial
-# OPTIMIZER_FACTORY = partial(torch.optim.SGD, lr=0.001, momentum=0.9)
-# PARAM_GROUPS = {
-#     # 'main': {'lr': 0.001, 'momentum': 0.9, 'weight_decay': 1e-4},
-#     'main': {'lr': 1e-4},
-#     # 'f0': {'lr': 0.1, 'momentum': 0.75}
-#     'f0': {'lr': 1e-2},
-# }
+
 PARAM_GROUPS = {
-    # 'main': {'lr': 0.001, 'momentum': 0.9, 'weight_decay': 1e-4},
-    # 'main': {'lr': 0.0001, 'momentum': 0.9, 'weight_decay': 1e-4},
     'main': {'lr': 1e-4},
-    # 'f0': {'lr': 0.1, 'betas': [0.9, 0.999]}
     'f0': {'lr': 1e-4}
 }
 OPTIMIZER_FACTORY = torch.optim.Adam
-# OPTIMIZER_FACTORY = partial(torch.optim.Adam, lr=0.000001, weight_decay=1e-4)
-# OPTIMIZER_FACTORY = partial(torch.optim.SGD, lr=0.0005, momentum=0.9, weight_decay=1e-4)
 
 MODEL_KWARGS = {
     'n_filters': 64,

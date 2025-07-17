@@ -9,29 +9,6 @@ CONFIG = Path(__file__).stem
 
 MODEL_CLASS = 'ConvClassifier'
 
-# from functools import partial
-# OPTIMIZER_FACTORY = partial(torch.optim.SGD, lr=0.001, momentum=0.9)
 PARAM_GROUPS = {
-    # 'main': {'lr': 0.001, 'momentum': 0.9, 'weight_decay': 1e-4},
-    # 'main': {'lr': 0.0001, 'momentum': 0.9, 'weight_decay': 1e-4},
-    # 'main': {'lr': 1e-3},
-    # 'main': {'lr': 0.001},
     'main': {'lr': 0.001},
 }
-
-# MODEL_KWARGS = {'n_filters': 16}
-# MODEL_KWARGS = {
-#     'n_filters': int(Path(__file__).stem.split('-')[-1]),
-#     # 'n_filters': 24,
-#     # 'n_filters': 32,
-#     'comb_kwargs': {
-#         # 'min_freq': 20,
-#         # 'max_freq': 500,
-#         'min_freq': 200,
-#         'max_freq': 500,
-#     }}
-
-# space f0 values equally in parameter space (exponentially in frequency space)
-# F0_INIT_METHOD = 'equal'
-
-# MEMORY_CACHING = True # TODO: remove

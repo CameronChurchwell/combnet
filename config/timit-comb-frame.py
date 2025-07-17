@@ -10,13 +10,8 @@ CONFIG = Path(__file__).stem
 MODEL_CLASS = 'CombClassifier'
 
 PARAM_GROUPS = {
-    # 'main': {'lr': 0.001, 'momentum': 0.9, 'weight_decay': 1e-4},
-    # 'main': {'lr': 0.0001, 'momentum': 0.9, 'weight_decay': 1e-4},
-    # 'main': {'lr': 1e-3},
     'main': {'lr': 0.001},
-    # 'f0': {'lr': 0.1, 'betas': [0.9, 0.999]}
     'f0': {'lr': 1e-3}
-    # 'f0': {'lr': 5e-4}
 }
 MODEL_KWARGS = {
     'n_filters': 80,

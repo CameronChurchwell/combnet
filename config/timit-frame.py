@@ -8,13 +8,9 @@ HOPSIZE = 800
 
 EVALUATION_DATASETS = ['timit']
 
-# METRICS = ['accuracy', 'loss', 'categorical']
 METRICS = ['accuracy', 'loss']
 
-# FEATURES = ['random-audio-frame', 'class']
 FEATURES = ['random-audio-frame-noised', 'class']
-
-# CHORDS = ["C", "F", "Bb", "Eb"]
 
 import yapecs
 
