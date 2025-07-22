@@ -168,8 +168,5 @@ PARAM_GROUPS = None
 # choice from 'equal' and 'random'
 F0_INIT_METHOD = 'random'
 
-# TODO document these
-FREEZE_POINTS = None
-UNFREEZE_POINTS = None
 
 LOSS_FUNCTION = None

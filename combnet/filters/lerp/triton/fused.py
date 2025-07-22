@@ -222,10 +222,7 @@ def _lerp_backward_kernel_fused(
 
 class _explicit_lerp_triton_fused(torch.autograd.Function):
     """
-    Stands in for the following operation:
-    ```
-    #TODO fill in
-    ```
+    Performs linear interpolation of comb filter and fused max pooling via triton kernel
     """
 
     @staticmethod
@@ -242,6 +239,7 @@ class _explicit_lerp_triton_fused(torch.autograd.Function):
         stride
     ):
         # TODO this is not strong enough, need to check strides multiply up to dims
+        # Really wish torch just provided a function for this...?
         assert x.is_contiguous() and y.is_contiguous() and a.is_contiguous() and l.is_contiguous() and m.is_contiguous()
         assert x.device == y.device == a.device == l.device
         ctx.n_taps = n_taps

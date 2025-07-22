@@ -79,10 +79,7 @@ def fractional_comb_fir_multitap_lerp(x, f0, a, sr):
 
 class _explicit_lerp(torch.autograd.Function):
     """
-    Stands in for the following operation:
-    ```
-    #TODO fill in
-    ```
+    Performs linear interpolation of comb filter to allow gradient computation
     """
 
     @staticmethod

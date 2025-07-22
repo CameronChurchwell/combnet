@@ -28,7 +28,28 @@ class Breakpoint(torch.nn.Module):
         import pdb; pdb.set_trace()
         pass
 
-# TODO credit original authors and include license (https://github.com/mravanelli/SincNet/blob/master/dnn_models.py)
+# Code taken from (https://github.com/mravanelli/SincNet/blob/master/dnn_models.py)
+# The MIT License (MIT)
+
+# Copyright (c) 2019 Mirco Ravanelli
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 
 class SincLayer(torch.nn.Module):
     """
@@ -115,7 +136,6 @@ class SincLayer(torch.nn.Module):
                          bias=None, groups=1))
 
 
-# TODO replace hardcoded values
 class SincNet(torch.nn.Module):
     def __init__(self):
         super().__init__()
@@ -182,12 +202,11 @@ class SincNet(torch.nn.Module):
 
             # "DNN2" as per the original implementation
             torch.nn.Linear(2048, len(combnet.CLASS_MAP)),
-            # torch.nn.Softmax(-1)
         )
 
     def parameter_groups(self):
         groups = {}
-        groups['main'] = list(self.layers.parameters()) #+ [self.filters[0].a] + [self.filters[0].g]
+        groups['main'] = list(self.layers.parameters())
         return groups
 
     def forward(self, audio):
@@ -198,5 +217,4 @@ class SincNet(torch.nn.Module):
         probs = self.layers(audio)
         probs = probs.unflatten(0, (b, f))
         probs = probs.mean(1)
-        # probs = torch.nn.functional.softmax(probs, -1)
         return probs

@@ -361,7 +361,7 @@ def fractional_comb_fir_multitap_sparse(x, f0, a, sr):
     assert f0.dim() == 2 # out_channels x in_channels
     assert a.dim() == 2 # out_channels x in_channels
 
-    # TODO make it work with more than 1 input channel
+    # TODO generalize?
     assert f0.shape[1] == 1
 
     l = sr/f0 # out_channels x in_channels
@@ -416,7 +416,7 @@ def fractional_comb_fir_multitap_sparse(x, f0, a, sr):
 
     y = y.unflatten(1, (-1, n_taps)) # batch x out_channels x n_taps x time
 
-    assert (num_nonzero//n_taps) % 2 == 1 # TODO relax this constraint
+    assert (num_nonzero//n_taps) % 2 == 1
     output_length = x.shape[-1] - f.shape[-1] + 1
 
     # TODO figure out input_channels...
@@ -521,8 +521,7 @@ def fractional_comb_fir_multitap_sparse_lowmem(x, f0, a, sr):
         block_radius = kernel_block_size // 2
         output_length = x.shape[-1] - f.shape[-1] + 1
         assert kernel_block_size % 2 == 1 # TODO relax this constraint
-        # TODO figure out input_channels...
-        assert centers.shape[1] == 1
+        assert centers.shape[1] == 1 # TODO generalize?
         centers = centers[:, 0] # output_channels x n_taps
         offsets = centers - block_radius # output_channels x n_taps
         offsets = offsets.permute(1, 0) # n_taps x output_channels

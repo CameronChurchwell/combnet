@@ -14,7 +14,6 @@ def Model() -> torch.nn.Module:
     try:
         module = getattr(combnet.models, combnet.MODEL_MODULE)
     except:
-        # TODO improve these
         raise ValueError(f'Could not find model module "{combnet.MODEL_MODULE}"')
 
     try:

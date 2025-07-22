@@ -171,10 +171,7 @@ def _sinc_backward_kernel(
 
 class _explicit_sinc_triton(torch.autograd.Function):
     """
-    Stands in for the following operation:
-    ```
-    #TODO fill in
-    ```
+    Performs sinc interpolation of comb filter via triton kernel
     """
 
     @staticmethod

@@ -41,27 +41,12 @@ void single_comb_iir_cpu(
     }
 }
 
-// void single_fractional_comb_iir_cpu(
-//     const double f0,
-//     const double a,
-//     const int64_t sr,
-//     at::Tensor& y
-// ) {
-//     // TODO: add checks
-//     at::Tensor y_contig = y.contiguous();
-//     float* y_ptr = y.data_ptr<float>();
-//     float delay = sr/f0;
-//     for (int64_t i=delay; i<y.numel(); i++) {
-//         y_ptr[i] += a * y_ptr[i-delay];
-//     }
-// }
-
 // Defines the operators
 TORCH_LIBRARY(combnet, m) {
     m.def("single_comb_iir(float f0, float a, int sr, Tensor(a!) y) -> ()");
 }
 
-// Registers CUDA implementations for mymuladd, mymul, myadd_out
+// Registers CPU implementation for single_comb_iir
 TORCH_LIBRARY_IMPL(combnet, CPU, m) {
   m.impl("single_comb_iir", &single_comb_iir_cpu);
 }

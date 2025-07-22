@@ -276,7 +276,6 @@ def chords(n=1000, chords=ALL_CHORDS, task='categorical'):
     """
     dataset_dir = combnet.DATA_DIR / 'chords'
     dataset_dir.mkdir(parents=True, exist_ok=True)
-    #TODO add random seeding
     # all_chords = chords + [c + 'm' for c in chords]
     for i in tqdm.tqdm(range(0, n), desc='synthesizing chords dataset', total=n, dynamic_ncols=True):
         stem = str(i)

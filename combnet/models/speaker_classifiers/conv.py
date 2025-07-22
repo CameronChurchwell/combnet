@@ -1,8 +1,5 @@
 import torch
-from combnet.modules import Comb1d, CombInterference1d, FusedComb1d
 import combnet
-import numpy as np
-import math
 
 class Permute(torch.nn.Module):
     def __init__(self, *dims):
@@ -21,7 +18,6 @@ class Unsqueeze(torch.nn.Module):
         return x.unsqueeze(self.dim)
 
 
-# TODO replace hardcoded values
 class ConvClassifier(torch.nn.Module):
     def __init__(self):
         super().__init__()
@@ -88,12 +84,11 @@ class ConvClassifier(torch.nn.Module):
 
             # "DNN2" as per the original implementation
             torch.nn.Linear(2048, len(combnet.CLASS_MAP)),
-            # torch.nn.Softmax(-1)
         )
 
     def parameter_groups(self):
         groups = {}
-        groups['main'] = list(self.layers.parameters()) #+ [self.filters[0].a] + [self.filters[0].g]
+        groups['main'] = list(self.layers.parameters())
         return groups
 
     def forward(self, audio):
@@ -104,5 +99,4 @@ class ConvClassifier(torch.nn.Module):
         probs = self.layers(audio)
         probs = probs.unflatten(0, (b, f))
         probs = probs.mean(1)
-        # probs = torch.nn.functional.softmax(probs, -1)
         return probs

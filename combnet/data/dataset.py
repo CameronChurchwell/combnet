@@ -226,7 +226,7 @@ class Metadata:
         self,
         name_or_files,
         partition=None,
-        overwrite_cache=False): #TODO change back to False
+        overwrite_cache=False):
         """Create a metadata object for the given dataset or sources"""
         lengths = {}
 

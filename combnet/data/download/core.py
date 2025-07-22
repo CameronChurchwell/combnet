@@ -75,7 +75,7 @@ def giantsteps():
         with BytesIO(file_download.content) as mp3_data:
             audio, sr = torchaudio.load(mp3_data)
         torchaudio.save(wav_file, audio, sr)
-        time.sleep(0.5) #TODO investigate if this is necessary
+        time.sleep(0.5) # Courtesy delay
 
 
 def giantsteps_mtg():
@@ -124,7 +124,7 @@ def giantsteps_mtg():
         with BytesIO(file_download.content) as mp3_data:
             audio, sr = torchaudio.load(mp3_data)
         torchaudio.save(wav_file, audio, sr)
-        time.sleep(0.5) #TODO investigate if this is necessary
+        time.sleep(0.5) # Courtesy delay
 
 
 def maestro(max_files = None):

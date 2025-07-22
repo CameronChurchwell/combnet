@@ -18,7 +18,7 @@ def parse_args():
         help='The names of the datasets to preprocess')
     parser.add_argument(
         '--features',
-        default=['spectrogram'], #TODO change to config value
+        default=combnet.INPUT_FEATURES,
         nargs='+',
         help='The names of the features to preprocess')
     parser.add_argument(

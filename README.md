@@ -1,4 +1,4 @@
-<h1 align="center">Deep learning project template</h1>
+<h1 align="center">Combolutional Neural Networks</h1>
 <div align="center">
 
 <!-- [![PyPI](https://img.shields.io/pypi/v/combnet.svg)](https://pypi.python.org/pypi/combnet) -->
@@ -11,13 +11,6 @@
 ## Table of contents
 
 - [Installation](#installation)
-- [Inference](#inference)
-    * [Application programming interface](#application-programming-interface)
-        * [`combnet.from_text_and_audio`](#combnetfrom_text_and_audio)
-        * [`combnet.from_file`](#combnetfrom_file)
-        * [`combnet.from_file_to_file`](#combnetfrom_file_to_file)
-        * [`combnet.from_files_to_files`](#combnetfrom_files_to_files)
-    * [Command-line interface](#command-line-interface)
 - [Training](#training)
     * [Download](#download)
     * [Preprocess](#preprocess)
@@ -30,7 +23,10 @@
 
 ## Installation
 
+You can install from pypi:
 `pip install combnet`
+or from a local clone:
+`pip install -e .`
 
 
 ## Inference

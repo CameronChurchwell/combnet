@@ -157,35 +157,9 @@ def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
 
         for batch in train_loader:
 
-            # TODO - generalize
             x, y = batch
             x = x.to(device)
             y = y.to(device)
-
-            # if step % 1000 == 0:
-            #     print(torch.cuda.memory_summary(device))
-
-            # TODO optimize this code, it might be slow...
-            if combnet.FREEZE_POINTS is not None and combnet.PARAM_GROUPS is not None:
-                groups = model.parameter_groups()
-                assert set(groups.keys()) == set(combnet.FREEZE_POINTS.keys())
-                param_groups = []
-                for name, points in combnet.FREEZE_POINTS.items():
-                    if step in points:
-                        print(f'freezing parameters for group {name} at step {step}')
-                        params = groups[name]
-                        for p in params:
-                            p.requires_grad_(False)
-            if combnet.UNFREEZE_POINTS is not None and combnet.PARAM_GROUPS is not None:
-                groups = model.parameter_groups()
-                assert set(groups.keys()) == set(combnet.UNFREEZE_POINTS.keys())
-                param_groups = []
-                for name, points in combnet.UNFREEZE_POINTS.items():
-                    if step in points:
-                        print(f'unfreezing parameters for group {name} at step {step}')
-                        params = groups[name]
-                        for p in params:
-                            p.requires_grad_(True)
 
             # Forward pass
             z = model(x)
@@ -216,17 +190,14 @@ def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
                     groups = model.parameter_groups()
                     if 'f0' in groups:
                         f = groups['f0'][0] # TODO expand to more than just first?
-                        # for child in model.get_submodule
                         scaling_function = None
                         grouped_scalars = {}
                         for m in model.modules():
                             if hasattr(m, 'scaling_function'):
                                 scaling_function: callable = getattr(m, 'scaling_function')
                                 break
-                        f = f.detach().cpu().flatten() #TODO expand to handle non-flat
+                        f = f.detach().cpu().flatten() #TODO expand to handle non-flat?
                         if scaling_function:
-                            # f_unscaled = {str(i): f_val for i, f_val in enumerate(f)}
-                            # grouped_scalars['f0_unscaled'] = f_unscaled
                             f = scaling_function(f)
                         f = {str(i): f_val for i, f_val in enumerate(f)}
                         grouped_scalars['f0'] = f
@@ -338,7 +309,6 @@ def evaluate(
 
         for i, batch in enumerate(loader):
 
-            # TODO - generalize
             x, y = batch
             x = x.to(device)
             y = y.to(device)
@@ -370,7 +340,6 @@ def log_f0(directory, step, model):
         groups = model.parameter_groups()
         if 'f0' in groups:
             f = groups['f0'][0] # TODO expand to more than just first?
-            # for child in model.get_submodule
             scaling_function = None
             grouped_scalars = {}
             for m in model.modules():
@@ -379,8 +348,6 @@ def log_f0(directory, step, model):
                     break
             f = f.detach().cpu().flatten() #TODO expand to handle non-flat
             if scaling_function:
-                # f_unscaled = {str(i): f_val for i, f_val in enumerate(f)}
-                # grouped_scalars['f0_unscaled'] = f_unscaled
                 f = scaling_function(f)
             f = {str(i): f_val for i, f_val in enumerate(f)}
             grouped_scalars['f0'] = f
@@ -396,9 +363,6 @@ def loss(logits, target):
     # if isinstance(target, tuple):
     #     target = torch.tensor(target).to(logits.device)
     if combnet.LOSS_FUNCTION is not None:
-        # try:
         return combnet.LOSS_FUNCTION(logits, target)
-        # except:
-        #     breakpoint()
     else: # classification
         return torch.nn.functional.cross_entropy(logits, target)

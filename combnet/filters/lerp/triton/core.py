@@ -194,16 +194,14 @@ def _lerp_backward_kernel(
 
 class _explicit_lerp_triton(torch.autograd.Function):
     """
-    Stands in for the following operation:
-    ```
-    #TODO fill in
-    ```
+    Performs linear interpolation of comb filter via triton kernel
     """
 
     @staticmethod
     @torch.no_grad
     def forward(ctx, x: torch.Tensor, y: torch.Tensor, a: torch.Tensor, l: torch.Tensor, n_taps):
-        # TODO this is not strong enough, need to check strides multiply up to dims
+        # TODO this is not strong enough, need to check strides multiply up to dims?
+        # Really wish torch just provided a function for this...?
         assert x.is_contiguous() and y.is_contiguous() and a.is_contiguous() and l.is_contiguous()
         assert x.device == y.device == a.device == l.device
         ctx.save_for_backward(x, a, l)

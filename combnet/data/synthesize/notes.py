@@ -31,7 +31,6 @@ def notes(n=1000):
     """
     dataset_dir = combnet.DATA_DIR / 'notes'
     dataset_dir.mkdir(parents=True, exist_ok=True)
-    #TODO add random seeding
     for i in tqdm.tqdm(range(0, n), desc='synthesizing notes dataset', total=n, dynamic_ncols=True):
         stem = f'{i:04d}'
         midi_file = dataset_dir / f'{stem}.midi'

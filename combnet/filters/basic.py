@@ -182,7 +182,6 @@ def fractional_comb_fiir(x, f0, a, sr):
     if f0.dim() == 0:
         f0 = f0[None, None]
     assert f0.dim() == 2
-    # TODO something might be wrong here with the shape of `a`
     assert a.dim() == 0 or a.dim() == 2
     if a.dim() == 2:
         a = a[..., None]
@@ -234,10 +233,8 @@ def fractional_anticomb_interference_fiir(x, f0, a, sr, residual_mode=False):
         filter = filter.unsqueeze(0).repeat(f0.shape[0], 1, 1, 1)
         filter = filter[idx].view(f0.shape[0]-1, f0.shape[0], f0.shape[1], filter.shape[-1])
         filter = filter.prod(0)
-    # filter = filter.prod(0, keepdims=True) / filter #TODO might cause gradient problems
-    # scale to compensate for multiple filters
     if filter.shape[0] >= 3:
-        filter = filter ** (1/(filter.shape[0]-1)) #TODO check if necessary
+        filter = filter ** (1/(filter.shape[0]-1))
     return torch.fft.irfft(((lp * torch.fft.rfft( x, n=l))[:, None] * filter[None]))[:x.shape[-1]] # change to fast conv instead?
 
 def fractional_anitcomb_fiir( x, f0, a, sr):

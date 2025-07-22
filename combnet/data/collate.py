@@ -53,8 +53,6 @@ class Collate():
                     batch_values.append(padded_labels)
 
             # Pack input audio representation
-            #TODO this is weird, values will always be a tuple...
-                # the old code is wrong... Strange.
             elif isinstance(values[0], torch.Tensor):
                 if values[0].dim() == 0: #assume all of them will have dim()==0
                     batch_values.append(torch.tensor(values))

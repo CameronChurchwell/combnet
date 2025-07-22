@@ -176,19 +176,13 @@ class STFTClassifier(torch.nn.Module):
             torch.nn.Conv2d(8, 8, (5, 5), (1, 1), (2, 2)), 
             torch.nn.ELU(),
 
-            # Sum(1),
-            # Break(),
             torch.nn.Flatten(1, 2),
             Permute(0, 2, 1),
-            # Permute(0, 1, 3, 2),
 
             torch.nn.Linear(self.filters.shape[0] * 8, 48),
             torch.nn.ELU(),
 
             Permute(0, 2, 1),
-            # Permute(0, 1, 3, 2),
-            # Sum(1),
-            # torch.nn.Flatten(1, 2),
 
             torch.nn.AdaptiveAvgPool1d(1),
             torch.nn.ELU(),
@@ -205,25 +199,8 @@ class STFTClassifier(torch.nn.Module):
         return super().to(device)
 
     def _extract_features(self, spectrogram):
-        # if audio.dim() == 3:
-        #     assert audio.shape[1] == 1
-        #     audio = audio.squeeze(1)
-        # spec = torch.stft(
-        #     audio,
-        #     n_fft=combnet.N_FFT,
-        #     hop_length=combnet.HOPSIZE,
-        #     win_length=combnet.WINDOW_SIZE,
-        #     window=self.window,
-        #     center=False,
-        #     normalized=False,
-        #     onesided=True,
-        #     return_complex=True)
-        # spec = abs(spectrogram)
         features = self.filters @ spectrogram
         features = torch.log(1+features)
-        # features = torch.log10(1+features)
-        # features /= abs(features).max()
-        # features *= 200 # TODO this is so cursed
         return features
 
     def forward(self, spectrogram):

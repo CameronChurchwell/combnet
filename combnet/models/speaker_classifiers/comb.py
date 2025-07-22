@@ -1,9 +1,6 @@
 import torch
 from combnet.modules import Comb1d, CombInterference1d, FusedComb1d
 import combnet
-import numpy as np
-import math
-import copy
 
 class Permute(torch.nn.Module):
     def __init__(self, *dims):
@@ -31,29 +28,12 @@ class Abs(torch.nn.Module):
     def forward(self, x):
         return abs(x)
 
-
-# TODO replace hardcoded values
 class CombClassifier(torch.nn.Module):
     def __init__(self, n_filters, window_size=3, stride=3, comb_kwargs={}, input_layernorm=False, comb_abs=False):
         super().__init__()
 
-        # comb_kwargs = copy.deepcopy(comb_kwargs)
-
-        # if 'stride' in comb_kwargs:
-        #     stride = comb_kwargs['stride']
-        #     del comb_kwargs['stride']
-        # else:
-        #     stride = 3
-        # if 'window_size' in comb_kwargs:
-        #     window_size = comb_kwargs['window_size']
-        #     del comb_kwargs['window_size']
-        # else:
-        #     window_size = stride
-
         dims = [3200]
         dims.append(
-            # int((dims[-1]-(251-1)-1)/stride+1)
-            # int((dims[-1]-window_size+1)//stride)
             int((dims[-1]-window_size)//stride+1)
         )
         dims.append(
@@ -87,10 +67,8 @@ class CombClassifier(torch.nn.Module):
         self.layers = torch.nn.Sequential(
             ln,
 
-            # FusedComb1d(1, n_filters, sr=combnet.SAMPLE_RATE, window_size=window_size, stride=stride, last_stride=False, **comb_kwargs),
             Comb1d(1, n_filters, sr=combnet.SAMPLE_RATE, **comb_kwargs),
             ab,
-            # torch.nn.Conv1d(1, 80, 251),
             torch.nn.MaxPool1d(window_size, stride),
             torch.nn.LayerNorm(dims.pop(0)),
             torch.nn.LeakyReLU(0.2),
@@ -126,7 +104,6 @@ class CombClassifier(torch.nn.Module):
 
             # "DNN2" as per the original implementation
             torch.nn.Linear(2048, len(combnet.CLASS_MAP)),
-            # torch.nn.Softmax(-1)
         )
 
     def parameter_groups(self):
@@ -143,5 +120,4 @@ class CombClassifier(torch.nn.Module):
         probs = self.layers(audio)
         probs = probs.unflatten(0, (b, f))
         probs = probs.mean(1)
-        # probs = torch.nn.functional.softmax(probs, -1)
         return probs

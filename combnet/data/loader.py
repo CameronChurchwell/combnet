@@ -21,7 +21,7 @@ def loader(
     valid = 'valid' in partition if partition is not None else False
     if test:
         batch_size = 1
-    if valid: # TODO make a smarter way of doing this (this prevents CUDA OOM for timit)
+    if valid:
         batch_size = 1
     return torch.utils.data.DataLoader(
         dataset=dataset,

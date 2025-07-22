@@ -83,8 +83,7 @@ class Comb1d(torch.nn.Module):
             if combnet.F0_INIT_METHOD == 'random':
                 self.f = torch.nn.Parameter(3*(torch.rand(out_channels, in_channels) * 2 - 1), requires_grad=True)
             elif combnet.F0_INIT_METHOD == 'equal':
-                assert in_channels == 1 # TODO generalize
-                # self.f = torch.nn.Parameter(torch.linspace(-1, 1, out_channels)[:, None], requires_grad=True)
+                assert in_channels == 1 # TODO generalize?
                 self.f = torch.nn.Parameter(torch.linspace(-3, 3, out_channels)[:, None], requires_grad=True)
             else:
                 raise ValueError(f'unknown initialization method {combnet.F0_INIT_METHOD}')
@@ -229,7 +228,6 @@ class FusedComb1d(torch.nn.Module):
                     warnings.warn('using negative alpha scaling function')
                     @torch.compile
                     def scaling_function(f: torch.Tensor): # f = output_channels x input_channels
-                        # f = min_freq * (fratio ** ((max_bin * torch.nn.functional.sigmoid(f) - min_bin) / nbins))
                         s = torch.nn.functional.sigmoid(f)
                         p = nbins*s+min_bin
                         o = min_freq * fratio ** ((p-min_bin) / nbins)
@@ -237,7 +235,6 @@ class FusedComb1d(torch.nn.Module):
                 else:
                     @torch.compile
                     def scaling_function(f: torch.Tensor): # f = output_channels x input_channels
-                        # f = min_freq * (fratio ** ((max_bin * torch.nn.functional.sigmoid(f) - min_bin) / nbins))
                         s = torch.nn.functional.sigmoid(f)
                         p = nbins*s+min_bin
                         o = min_freq * fratio ** ((p-min_bin) / nbins)
@@ -258,7 +255,7 @@ class FusedComb1d(torch.nn.Module):
             if combnet.F0_INIT_METHOD == 'random':
                 self.f = torch.nn.Parameter(3*(torch.rand(out_channels, in_channels) * 2 - 1), requires_grad=True)
             elif combnet.F0_INIT_METHOD == 'equal':
-                assert in_channels == 1 # TODO generalize
+                assert in_channels == 1 # TODO generalize?
                 # self.f = torch.nn.Parameter(torch.linspace(-1, 1, out_channels)[:, None], requires_grad=True)
                 self.f = torch.nn.Parameter(torch.linspace(-3, 3, out_channels)[:, None], requires_grad=True)
             else:
@@ -338,10 +335,6 @@ class FusedComb1d(torch.nn.Module):
             out_length = (x.shape[-1] - self.window_size) // self.stride
             out = out[..., :out_length]
         return out
-        # else: # TODO Debug
-        #     with torch.no_grad():
-        #         return self.comb_fn(x, f, self.a.to(d), self.sr, self.window_size, self.stride) + self.b.to(d)
-        # return fractional_comb_fiir(x, self.f.to(d), self.a.to(d), self.sr) + self.b.to(d)
 
 # Comb1dFIIR = partial(Comb1d, comb_fn=combnet.filters.fractional_comb_fiir)
 
@@ -383,7 +376,7 @@ class CombInterference1d(torch.nn.Module):
         x = fractional_anticomb_interference_fiir(x, self.f, self.a.to(x.device), self.sr)
         x = fractional_comb_fiir(x, self.f, self.a.to(x.device), self.sr) #+ self.b
         return x
-    
+
 class CombResidual1d(CombInterference1d):
 
     def __call__(self, x):
