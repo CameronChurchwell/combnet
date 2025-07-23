@@ -19,6 +19,7 @@ requires-python = ">=3.8"
 dependencies = [
     "GPUtil",
     "torch",
+    "torchaudio",
     "torchutil",
     "yapecs",
     "GPUtil",
@@ -26,7 +27,10 @@ dependencies = [
     "resampy",
     "jax",
     "pyfluidsynth",
-    "matplotlib"
+    "matplotlib",
+    "tqdm",
+    "pretty_midi",
+    "madmom @ git+https://github.com/CPJKU/madmom.git@main"
 ]
 classifiers = [
     "License :: OSI Approved :: MIT License"

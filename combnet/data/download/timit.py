@@ -2,8 +2,6 @@ import struct
 import tarfile
 import json
 
-import pypar
-
 import torchutil
 import torchaudio
 
@@ -96,48 +94,6 @@ def sphere_to_wav(sphere_file):
         new_header = wav_make_header(header)
         samples = sph_get_samples(f, header_size)
         return new_header + samples
-
-
-###############################################################################
-# Convert IPA phonemes to CMU
-###############################################################################
-
-
-def ipa_to_cmu(rows, backfill=True):
-    """Phoneme conversion from IPA to CMU"""
-    # Convert
-    phones = []
-    transposed = list(zip(*rows))
-    for phone in transposed[2]:
-        try:
-            phones.append(combnet.TIMIT_TO_ARCTIC_MAPPING[phone.lower()])
-        except KeyError:
-            phones.append(pypar.SILENCE)
-
-    # Handle non-one-to-one or context-dependent phoneme conversions
-    if backfill:
-        backfill_indices = [
-            idx for idx, phone in enumerate(phones)
-            if phone[:3] == 'bck']
-        for i, idx in enumerate(backfill_indices):
-            assert (
-                phones[idx][3] == '<' and phones[idx][-1] == '>')
-            possible_replacements = phones[idx][4:-1].split(',')
-            if (
-                idx < len(phones) - 1 and
-                phones[idx + 1] in possible_replacements
-            ):
-                phones[idx] = 'bck'
-            else:
-                phones[idx] = possible_replacements[0]
-        for i in range(0, len(phones)):
-            if phones[i] == 'bck':
-                phones[i] = phones[i + 1]
-
-    # Convert times to seconds
-    phone_ends = [int(sample) / 16000 for sample in list(transposed[1])]
-
-    return list(zip(phone_ends, phones))
 
 
 ###############################################################################

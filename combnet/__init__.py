@@ -22,7 +22,6 @@ from .config.static import *
 
 from .core import *
 
-from .triton_conv1d import SparseConv1d
 from . import _C
 from . import filters
 from . import functional
