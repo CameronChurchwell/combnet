@@ -1,0 +1,46 @@
+[build-system]
+requires = [
+    "setuptools>=61.0,<70",
+    # "numpy",
+    # "pybind11",
+    "torch"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "combnet"
+version = "0.1.0"
+authors = [
+  { name="Cameron Churchwell", email="cameronchurchwell@icloud.com" }
+]
+description = "Combolutional Neural Networks"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "GPUtil",
+    "torch",
+    "torchutil",
+    "yapecs",
+    "GPUtil",
+    "librosa",
+    "resampy",
+    "jax",
+    "pyfluidsynth",
+    "matplotlib"
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License"
+]
+license = {text = "MIT License"}
+keywords = []
+
+[project.urls]
+Homepage = "https://github.com/CameronChurchwell/combnet"
+Issues = "https://github.com/CameronChurchwell/combnet/issues"
+
+# [project.optional-dependencies]
+# evaluate = [
+# ]
+
+[tool.setuptools.package-data]
+combnet = ["assets/*", "assets/*/*"]

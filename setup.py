@@ -79,20 +79,8 @@ with open('README.md') as file:
 
 
 setup(
-    name='combnet',
-    description='Efficient comb filter networks',
-    version='0.0.1',
-    author='Cameron Churchwell',
-    author_email='cameronchurchwell@icloud.com',
-    url='https://github.com/CameronChurchwell/combnet',
-    install_requires=['accelerate', 'GPUtil', 'torch', 'torchutil', 'yapecs', 'librosa', 'resampy', 'jax', 'pyfluidsynth', 'matplotlib'],
     packages=find_packages(),
     package_data={'combnet': ['assets/*', 'assets/*/*']},
-    long_description=long_description,
-    long_description_content_type='text/markdown',
-    keywords=[],
-    classifiers=['License :: OSI Approved :: MIT License'],
-    license='MIT',
     ext_modules=get_extensions(),
     cmdclass={"build_ext": BuildExtension},
     options={"bdist_wheel": {"py_limited_api": "cp39"}} if py_limited_api else {},
