@@ -9,12 +9,6 @@ import sys
 
 import combnet
 
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    import penn
-else:
-    from combnet import penn
-
 ###############################################################################
 # Train
 ###############################################################################
@@ -23,26 +17,6 @@ else:
 @torchutil.notify('train')
 def train(dataset, directory=combnet.RUNS_DIR / combnet.CONFIG, gpu=None):
     """Train a model"""
-
-    if dataset in ['mdb', 'ptdb'] or dataset == 'mdb+ptdb':
-        if dataset == 'mdb+ptdb':
-            datasets = ['mdb', 'ptdb']
-        else:
-            datasets = [dataset]
-
-        # penn model setup
-        def Model(name=None):
-            return combnet.Model()
-        penn.model.Model = Model
-
-        penn_train = sys.modules['penn.train.core']
-        original_penn_evaluate = penn_train.evaluate
-        def wrapped_evaluate(directory, step, model, gpu, condition, loader):
-            log_f0(directory, step, model)
-            return original_penn_evaluate(directory, step, model, gpu, condition, loader)
-        penn_train.evaluate = wrapped_evaluate
-        penn.train(datasets, directory, gpu=gpu)
-        return
 
     # Create output directory
     directory.mkdir(parents=True, exist_ok=True)

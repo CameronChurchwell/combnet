@@ -20,8 +20,6 @@ from .config.static import *
 # Module imports
 ###############################################################################
 
-penn = yapecs.compose('penn', [Path(__file__).parent / 'config' / 'penn.py'])
-
 from .core import *
 
 from .triton_conv1d import SparseConv1d

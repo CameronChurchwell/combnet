@@ -23,7 +23,7 @@ CONFIG: str = 'combnet'
 
 
 # Names of all normal datasets
-# DATASETS: List[str] = ['giantsteps', 'giantsteps_mtg', 'ptdb', 'mdb', 'maestro', 'timit']
+# DATASETS: List[str] = ['giantsteps', 'giantsteps_mtg', 'maestro', 'timit']
 DATASETS: List[str] = ['giantsteps', 'giantsteps_mtg', 'timit']
 
 # Names of all synthetic datasets

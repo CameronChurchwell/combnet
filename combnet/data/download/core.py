@@ -11,12 +11,6 @@ from pathlib import Path
 import tarfile
 import csv
 
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    import penn
-else:
-    from combnet import penn
-
 from . import timit
 
 ###############################################################################
@@ -31,10 +25,6 @@ def datasets(datasets=combnet.DATASETS):
         giantsteps()
     if 'giantsteps_mtg' in datasets:
         giantsteps_mtg()
-    if 'ptdb' in datasets:
-        penn.data.download.datasets(['ptdb'])
-    if 'mdb' in datasets:
-        penn.data.download.datasets(['mdb'])
     if 'maestro' in datasets:
         maestro()
     if 'timit' in datasets:
