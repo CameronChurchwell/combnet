@@ -1,10 +1,10 @@
 from random import randint, uniform
 import tqdm
-import pretty_midi
 
 import combnet
 
 def generate_midi_file(midi_file, n_notes):
+    import pretty_midi
     pm = pretty_midi.PrettyMIDI()
     instrument = pretty_midi.Instrument(program=0)
 

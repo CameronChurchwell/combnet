@@ -1,4 +1,3 @@
-import fluidsynth
 from random import randint, random, choice, shuffle
 import torch
 import torchaudio
@@ -6,27 +5,9 @@ import numpy as np
 import copy
 import tqdm
 import json
-import torchutil
 
 import combnet
 
-#TODO move this inside of a function or conditional so it isn't necessary (it's relatively fragile)
-# Initialize the synthesizer
-fl = fluidsynth.Synth(samplerate=combnet.SAMPLE_RATE)
-
-# Pick a soundfont and a patch
-sf = combnet.DATA_DIR / 'GeneralUser GS 1.44 SoftSynth' / 'GeneralUser GS SoftSynth v1.44.sf2'
-if not sf.exists():
-    torchutil.download.zip(
-        'https://schriscollins.website/wp-content/uploads/2022/01/GeneralUser_GS_1.44-SoftSynth.zip',
-        combnet.DATA_DIR,
-        use_headers=True
-    )
-assert sf.exists()
-sf = str(sf)
-# sf = '/usr/local/share/GUv1.44.sf2' # you can download this from https://schristiancollins.com/generaluser.php, place wherever you like
-soundfont = fl.sfload(sf)
-fl.program_select(0, soundfont, 0, 1) # 1 = piano patch
 allowed_instruments = [
     0, #Stereo Grand
     1, #Bright Grand
@@ -65,7 +46,6 @@ allowed_instruments = [
     71, #Clarinet
     73, #Flute
 ]
-# fl.program_select( 0, , 0, 10) # 10 = glockenspiel patch
 
 beadgcf = ["B", "E", "A", "D", "G", "C", "F"]
 beadgcf_ext = beadgcf[:]
@@ -159,7 +139,7 @@ class Key():
 
     def getMajorChord(self):
         return [self.notes[0], self.notes[2], self.notes[4]]
-    
+
     def getMinorChord(self):
         newKey = self.getDorianKey()
         return newKey.getMajorChord()
@@ -205,7 +185,7 @@ class Key():
         return newKey
 
 # Render a note
-def get_note( note, vel, bend, start, hold, end):
+def get_note(note, vel, bend, start, hold, end, fl):
     from numpy import concatenate
     from scipy.signal import resample_poly
 
@@ -237,17 +217,14 @@ def get_note( note, vel, bend, start, hold, end):
 
 
 # Make a bunch of notes with random pitch bend and velocity
-def generate_notes(chord):
+def generate_notes(chord, fl):
     z = []
-    fl.all_sounds_off( 0) # Important, empty any lingering notes from the buffer
+    fl.all_sounds_off(0) # Important, empty any lingering notes from the buffer
     notes = getNoteNums(chord)
     # print(notes, chord_name, is_major)
     shuffle(notes)
     for i in range(0, len(notes)):
-        # Get a note, use a 3 octave spread around at 60 (= Middle C)
-        # note = choice( [0,2,4,5,7,9]) + 12*randint( -1, 1) + 60 # from a pentatonic scale
         note = notes[i]
-        # note = randint( 0, 11) + 12*randint( -1, 1) + 60 # or pure chaos
 
         # Define start silence/duration/end silence times in seconds
         start = random()*0.1
@@ -259,7 +236,7 @@ def generate_notes(chord):
         velocity = randint( 80, 127) # 0 to 127
 
         # Make the note and add it to the list
-        z += [get_note(note, velocity, bend, start, hold, end)]
+        z += [get_note(note, velocity, bend, start, hold, end, fl=fl)]
 
     max_len = max(len(ch) for ch in z)
     out = np.zeros(max_len, dtype=z[0].dtype)
@@ -276,18 +253,17 @@ def chords(n=1000, chords=ALL_CHORDS, task='categorical'):
     """
     dataset_dir = combnet.DATA_DIR / 'chords'
     dataset_dir.mkdir(parents=True, exist_ok=True)
-    # all_chords = chords + [c + 'm' for c in chords]
     for i in tqdm.tqdm(range(0, n), desc='synthesizing chords dataset', total=n, dynamic_ncols=True):
         stem = str(i)
-        # chord = "C"
         chord = choice(chords)
-        # is_major = choice([True, False])
         is_major = True
         key = Key.fromName(chord)
         notes = key.getMajorChord() if is_major else key.getMinorChord()
         instrument = choice(allowed_instruments)
+        fl = combnet.data.synthesize.get_synth()
+        soundfont = combnet.data.synthesize.get_softsynth(synth=fl)
         fl.program_select(0, soundfont, 0, instrument)
-        chord_audio = torch.tensor(generate_notes(notes), dtype=torch.float32)[None]
+        chord_audio = torch.tensor(generate_notes(notes, fl=fl), dtype=torch.float32)[None]
         chord_audio /= abs(chord_audio).max() # normalize to [-1, 1]
         quality = 'major' if is_major else 'minor'
         label = chord + ('m' if not is_major else '')

@@ -18,6 +18,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
     "GPUtil",
+    "numpy",
     "torch",
     "torchaudio",
     "torchutil",
@@ -30,6 +31,7 @@ dependencies = [
     "matplotlib",
     "tqdm",
     "pretty_midi",
+    "platformdirs",
     "madmom @ git+https://github.com/CPJKU/madmom.git@main"
 ]
 classifiers = [
