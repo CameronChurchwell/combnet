@@ -1,10 +1,17 @@
 <h1 align="center">Combolutional Neural Networks</h1>
 <div align="center">
 
-<!-- [![PyPI](https://img.shields.io/pypi/v/combnet.svg)](https://pypi.python.org/pypi/combnet) -->
+[![PyPI](https://img.shields.io/pypi/v/combnet.svg)](https://pypi.python.org/pypi/combnet)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 <!-- [![Downloads](https://pepy.tech/badge/combnet)](https://pepy.tech/project/combnet) -->
 
+</div>
+
+<div align="center">
+
+Training, evaluation, and implementations of Combolutional Layers in PyTorch
+
+[[Paper]]()
 </div>
 
 
@@ -23,131 +30,12 @@
 
 ## Installation
 
-You can install from pypi:
+You can install from PyPI:
 `pip install combnet`
 or from a local clone:
 `pip install -e .`
 
-
-## Inference
-
-```python
-import combnet
-
-# TODO - load input
-x = None
-
-# Model checkpoint
-checkpoint = combnet.DEFAULT_CHECKPOINT
-
-# GPU index
-gpu = 0
-
-y = combnet.run(x, checkpoint=checkpoint, gpu=gpu)
-```
-
-
-### Application programming interface
-
-#### `combnet.run`
-
-
-```
-"""
-
-Arguments
-    x
-        User input
-    checkpoint
-        The model checkpoint
-    gpu
-        The GPU index
-
-Returns
-    y
-        System output
-"""
-```
-
-
-#### `combnet.from_file`
-
-```
-"""Load from file and process
-
-Arguments
-    input_file
-        Input file to process
-    checkpoint
-        The model checkpoint
-    gpu : int
-        The GPU index
-
-Returns
-    y
-        System output
-"""
-```
-
-
-#### `combnet.from_file_to_file`
-
-```
-"""Process file and save to disk
-
-Arguments
-    input_file
-        Input file to process
-    output_file
-        Corresponding file to save processed input
-    checkpoint
-        The model checkpoint
-    gpu
-        The GPU index
-"""
-```
-
-
-#### `combnet.from_files_to_files`
-
-```
-"""Process many files and save to disk
-
-Arguments
-    input_files
-        Input files to process
-    output_files
-        Corresponding files to save processed input
-    checkpoint
-        The model checkpoint
-    gpu
-        The GPU index
-"""
-```
-
-
-### Command-line interface
-
-```
-python -m combnet
-    [-h]
-    --input_files INPUT_FILES [INPUT_FILES ...]
-    --output_files OUTPUT_FILES [OUTPUT_FILES ...]
-    [--checkpoint CHECKPOINT]
-    [--gpu GPU]
-
-Arguments:
-    -h, --help
-        show this help message and exit
-    --input_files INPUT_FILES [INPUT_FILES ...]
-        Input files to process
-    --output_files OUTPUT_FILES [OUTPUT_FILES ...]
-        Corresponding files to save processed inputs
-    --checkpoint CHECKPOINT
-        The model checkpoint
-    --gpu GPU
-        The GPU index
-```
+For full training and evaluation compatibility, you will also need to install FFMPEG version >=4, <7 (version 6 is recommended).
 
 
 ## Training
@@ -159,9 +47,16 @@ Arguments:
 Download and uncompress datasets used for training
 
 
+### Augmentation
+
+`python -m combnet.data.augment --datasets giantsteps_mtg`
+
+Augment data (pitch shift to other keys)
+
+
 ### Preprocess
 
-`python -m combnet.data.preprocess`
+`python -m combnet.data.preprocess --datasets giantsteps_mtg giantsteps`
 
 Preprocess datasets
 
@@ -177,10 +72,7 @@ Partition datasets. Partitions are saved in `combnet/assets/partitions`.
 
 `python -m combnet.train --config <config> --gpus <gpus>`
 
-Trains a model according to a given configuration. Uses a list of GPU indices
-as an argument, and uses distributed data parallelism (DDP) if more than one
-index is given. For example, `--gpus 0 3` will train using DDP on GPUs `0`
-and `3`.
+Trains a model according to a given configuration.
 
 
 ### Monitor
