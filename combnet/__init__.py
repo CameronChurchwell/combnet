@@ -20,6 +20,8 @@ from .config.static import *
 # Module imports
 ###############################################################################
 
+from . import madmom
+
 from .core import *
 
 from . import _C

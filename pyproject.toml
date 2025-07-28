@@ -1,15 +1,15 @@
 [build-system]
 requires = [
     "setuptools>=61.0,<70",
-    # "numpy",
-    # "pybind11",
+    "numpy",
+    "pybind11",
     "torch"
 ]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "combnet"
-version = "1.0.0"
+version = "1.0.1"
 authors = [
   { name="Cameron Churchwell", email="cameronchurchwell@icloud.com" }
 ]
@@ -32,7 +32,7 @@ dependencies = [
     "tqdm",
     "pretty_midi",
     "platformdirs",
-    "madmom @ git+https://github.com/CPJKU/madmom.git@main"
+    # "madmom @ git+https://github.com/CPJKU/madmom.git@main"
 ]
 classifiers = [
     "License :: OSI Approved :: MIT License"

@@ -1,8 +1,7 @@
 import torch
-from combnet.modules import Comb1d, CombInterference1d, FusedComb1d
 import combnet
 
-from madmom.audio.filters import LogarithmicFilterbank
+from combnet.madmom import LogarithmicFilterbank
 
 class Permute(torch.nn.Module):
     def __init__(self, *dims):

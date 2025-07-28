@@ -3,10 +3,8 @@ import torchaudio
 import combnet
 import librosa
 import numpy as np
-from typing import Union, Optional
-from numpy.typing import DTypeLike
 
-from madmom.audio.filters import LogarithmicFilterbank
+from combnet.madmom import LogarithmicFilterbank
 
 def bins_to_freqs(bins):
     return bins * combnet.SAMPLE_RATE / combnet.N_FFT

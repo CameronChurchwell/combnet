@@ -3,7 +3,7 @@ import combnet
 from matplotlib import pyplot as plt
 from matplotlib import colors
 
-from madmom.audio.filters import LogarithmicFilterbank
+from combnet.madmom import LogarithmicFilterbank
 import numpy as np
 
 def madmom_filters(bands_per_octave=24):
