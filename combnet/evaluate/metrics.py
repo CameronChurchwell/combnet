@@ -225,13 +225,13 @@ class PerClassBinaryAccuracy(torchutil.metrics.Metric):
     def __call__(self):
         result = {f'PerClassBinaryAccuracy/{idx}': (self.correct[idx]/self.counts).item() for idx in range(0, len(self.correct))}
 
-        precision = self.tp / (self.tp + self.fp)
+        precision = self.tp / (self.tp + self.fp + 1e-9)
         result |= {f'PerClassPrecision/{idx}': (precision[idx]).item() for idx in range(0, len(precision))}
 
-        recall = self.tp / (self.tp + self.fn)
+        recall = self.tp / (self.tp + self.fn + 1e-9)
         result |= {f'PerClassRecall/{idx}': (recall[idx]).item() for idx in range(0, len(recall))}
 
-        F1 = 2*precision*recall / (precision+recall)
+        F1 = 2*precision*recall / (precision+recall + 1e-9)
         result |= {f'PerClassF1/{idx}': (F1[idx]).item() for idx in range(0, len(F1))}
 
         macro_precision = precision.mean()
@@ -248,16 +248,16 @@ class PerClassBinaryAccuracy(torchutil.metrics.Metric):
         fp = self.fp.sum()
         fn = self.fn.sum()
 
-        micro_precision = tp / (tp + fp)
+        micro_precision = tp / (tp + fp + 1e-9)
         result['MicroPrecision'] = micro_precision.item()
 
-        micro_recall = tp / (tp + fn)
+        micro_recall = tp / (tp + fn + 1e-9)
         result['MicroRecall'] = micro_recall.item()
 
-        micro_F1 = 2*micro_precision*micro_recall / (micro_precision+micro_recall)
+        micro_F1 = 2*micro_precision*micro_recall / (micro_precision+micro_recall + 1e-9)
         result['MicroF1'] = micro_F1.item()
 
-        result['TotalPerClassAcuracy'] = (self.correct.sum()/(self.counts*len(self.correct))).item()
+        result['TotalPerClassAcuracy'] = (self.correct.sum()/(self.counts*len(self.correct) + 1e-9)).item()
         result['FrameAccuracy'] = (self.all_correct/self.counts).item()
         return result
     

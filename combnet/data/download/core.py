@@ -112,7 +112,7 @@ def giantsteps_mtg():
             import pdb; pdb.set_trace()
             raise ValueError(f'download error {file_download.status_code}')
         with BytesIO(file_download.content) as mp3_data:
-            audio, sr = torchaudio.load(mp3_data)
+            audio, sr = torchaudio.load(mp3_data, backend='ffmpeg')
         torchaudio.save(wav_file, audio, sr)
         time.sleep(0.5) # Courtesy delay
 
