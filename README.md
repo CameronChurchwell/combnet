@@ -95,5 +95,6 @@ Evaluate a model. `<checkpoint>` is the checkpoint file to evaluate and `<gpu>`
 is the GPU index.
 
 
-## References
+<!-- ## References -->
+<!-- TODO: add citation bibtex -->
 
