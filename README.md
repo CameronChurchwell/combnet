@@ -11,13 +11,14 @@
 
 Training, evaluation, and implementations of Combolutional Layers in PyTorch
 
-[[Paper]]()
+[[Paper]](https://arxiv.org/abs/2507.21202)
 </div>
 
 
 ## Table of contents
 
 - [Installation](#installation)
+- [Replication](#replication)
 - [Training](#training)
     * [Download](#download)
     * [Preprocess](#preprocess)
@@ -25,7 +26,7 @@ Training, evaluation, and implementations of Combolutional Layers in PyTorch
     * [Train](#train)
     * [Monitor](#monitor)
     * [Evaluate](#evaluate)
-- [References](#references)
+- [Citation](#citation)
 
 
 ## Installation
@@ -37,6 +38,18 @@ or from a local clone:
 
 For full training and evaluation compatibility, you will also need to install FFMPEG version >=4, <7 (version 6 is recommended).
 
+## Replication
+
+To enable easier replication, we provide `run.sh`, a script which runs through the primary experiments presented in the paper.
+
+To handle data storage, you can set the `COMBNET_DATA_DIR` and `COMBNET_CACHE_DIR` environment variables, e.g.:
+
+```sh
+export COMBNET_DATA_DIR="/data-drive/cameron/combnet/datasets"
+export COMBNET_CACHE_DIR="/data-drive/cameron/combnet/cache"
+```
+
+Please note that you will need to manually source a copy of the TIMIT dataset and drag the dataset into `<COMBNET_DATA_DIR>/timit`, creating the directory if necessary. If you do not do this, the download command will error with further instructions.
 
 ## Training
 
@@ -95,6 +108,20 @@ Evaluate a model. `<checkpoint>` is the checkpoint file to evaluate and `<gpu>`
 is the GPU index.
 
 
-<!-- ## References -->
-<!-- TODO: add citation bibtex -->
+## Citation
+
+If you find this work helpful, please cite our paper:
+
+### BibTeX:
+
+```bibtex
+@inproceedings{churchwell2025comb,
+    title={Combolutional Neural Networks},
+    author={Churchwell, Cameron and Kim, Minje and Smaragdis, Paris},
+    booktitle={Proc. of the IEEE Workshop on Applications of Signal Processing to Audio and Acoustics (WASPAA)},
+    year={2025}
+}
+```
+
+
 
